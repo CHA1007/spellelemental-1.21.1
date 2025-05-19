@@ -5,7 +5,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 public class DamageEvent {
-    // 检测是否为法术伤害
     public static boolean IsSpellDamage(LivingDamageEvent.Pre event) {
         return isSpellDamage(event.getSource());
     }

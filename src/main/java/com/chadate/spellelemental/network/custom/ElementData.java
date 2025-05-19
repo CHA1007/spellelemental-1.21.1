@@ -1,15 +1,10 @@
 package com.chadate.spellelemental.network.custom;
 
-import io.netty.buffer.ByteBuf;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.UUID;
-
 
 public class ElementData implements CustomPacketPayload {
     static int entityId;
@@ -20,19 +15,9 @@ public class ElementData implements CustomPacketPayload {
     public String elementMessage;
     public int durationMessage;
 
-    public static int getEntityId() {
-        return entityId;
-    }
-
     public static String getElement() {
         return element;
     }
-
-    public static int getDuration() {
-        return duration;
-    }
-
-
 
     public static final CustomPacketPayload.Type<ElementData> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_data"));
 
