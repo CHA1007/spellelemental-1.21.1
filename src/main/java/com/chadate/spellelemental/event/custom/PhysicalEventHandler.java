@@ -6,7 +6,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 public class PhysicalEventHandler {
 
     @SubscribeEvent
-    public static void onLivingDamage(LivingDamageEvent.Pre event) {
+    public static void applyPhysicalBonus(LivingDamageEvent.Pre event) {
         PhysicalDamageEvent.PhysicalDamage(event);
     }
 }

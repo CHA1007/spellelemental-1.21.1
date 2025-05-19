@@ -6,7 +6,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 public class CritEventHandler {
     @SubscribeEvent
-    public static void onLivingDamage(LivingDamageEvent.Pre event) {
+    public static void applyCritBonus(LivingDamageEvent.Pre event) {
         LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
         CritDamageEvent.handleCrit(event, attacker);
     }

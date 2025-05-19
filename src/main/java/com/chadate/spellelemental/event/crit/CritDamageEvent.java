@@ -13,7 +13,7 @@ public class CritDamageEvent {
         // 判定是否触发暴击
         if (shouldTriggerCrit(attacker)) {
 
-            float critDamage = (float) calculateCritDamage(event.getOriginalDamage(), attacker);
+            float critDamage = (float) calculateCritDamage(event.getNewDamage(), attacker);
             event.setNewDamage(critDamage);
 
             // 触发音效

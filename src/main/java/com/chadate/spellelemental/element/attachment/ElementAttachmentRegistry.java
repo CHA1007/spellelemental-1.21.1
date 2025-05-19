@@ -5,6 +5,7 @@ import net.minecraft.world.entity.LivingEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ElementAttachmentRegistry {
     private static final List<ElementAttachmentHandler> handlers = new ArrayList<>();
@@ -20,5 +21,11 @@ public class ElementAttachmentRegistry {
                 break;
             }
         }
+    }
+
+    private static final AtomicReference<String> latestAppliedElement = new AtomicReference<>("");
+
+    public static String getLatestAppliedElement() {
+        return latestAppliedElement.get();
     }
 }

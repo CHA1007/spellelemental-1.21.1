@@ -24,9 +24,8 @@ public class ElementReactionManager {
 
     // 使用优先级排序确保关键反应先触发
     public void handleReaction(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
-        // 按照优先级排序（高优先级先触发）
         List<ElementReaction> sortedReactions = new ArrayList<>(reactions);
-        sortedReactions.sort(Comparator.comparingInt(this::getPriority));
+        sortedReactions.sort(Comparator.comparingInt(this::getPriority).reversed());
 
         for (ElementReaction reaction : sortedReactions) {
             if (reaction.appliesTo(event.getEntity(), event.getSource())) {
@@ -48,22 +47,22 @@ public class ElementReactionManager {
 
         //lightning reaction
         if (reaction instanceof LightningSurgechargeReaction) return 93;
-        if (reaction instanceof LightningSurgeReaction) return 92;
-        if (reaction instanceof LightningDeflagrationReaction) return 91;
-        if (reaction instanceof LightningFreezeVulnerableReaction) return 90;
-        if (reaction instanceof LightningElectroReaction) return 89;
-        if (reaction instanceof LightningSuperconductiveReaction) return 88;
-        if (reaction instanceof LightningPromotionReaction) return 87;
+        if (reaction instanceof LightningPromotionReaction) return 92;
+        if (reaction instanceof LightningSurgeReaction) return 91;
+        if (reaction instanceof LightningDeflagrationReaction) return 90;
+        if (reaction instanceof LightningFreezeVulnerableReaction) return 89;
+        if (reaction instanceof LightningElectroReaction) return 88;
+        if (reaction instanceof LightningSuperconductiveReaction) return 87;
 
         //ice reaction
         if (reaction instanceof IceSuperconductiveReaction) return 86;
         if (reaction instanceof IceMeltReaction) return 85;
 
         //nature reaction
-        if (reaction instanceof NatureGerminateReaction) return 84;
-        if (reaction instanceof NatureBurnReaction) return 83;
-        if (reaction instanceof NatureDewSparkReaction) return 82;
-        if (reaction instanceof NaturePromotionReaction) return 81;
+        if (reaction instanceof NaturePromotionReaction) return 84;
+        if (reaction instanceof NatureGerminateReaction) return 83;
+        if (reaction instanceof NatureBurnReaction) return 82;
+        if (reaction instanceof NatureDewSparkReaction) return 81;
         return 0;
     }
 }

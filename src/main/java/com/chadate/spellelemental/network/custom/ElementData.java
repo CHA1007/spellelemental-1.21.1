@@ -15,8 +15,16 @@ public class ElementData implements CustomPacketPayload {
     public String elementMessage;
     public int durationMessage;
 
+    public static int getEntityId() {
+        return entityId;
+    }
+
     public static String getElement() {
         return element;
+    }
+
+    public static int getDuration() {
+        return duration;
     }
 
     public static final CustomPacketPayload.Type<ElementData> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_data"));
@@ -33,7 +41,7 @@ public class ElementData implements CustomPacketPayload {
     public void write(FriendlyByteBuf buf) {
             buf.writeInt(this.entityIdMessage);
             buf.writeUtf(this.elementMessage);
-            buf.writeInt(durationMessage);
+            buf.writeInt(this.durationMessage);
 
     }
 

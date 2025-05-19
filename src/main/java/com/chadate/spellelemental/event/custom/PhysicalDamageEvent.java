@@ -12,7 +12,7 @@ public class PhysicalDamageEvent {
     public static void PhysicalDamage(LivingDamageEvent.Pre event) {
         LivingEntity target = event.getEntity();
         LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
-        double originalDamage = event.getOriginalDamage();
+        double originalDamage = event.getNewDamage();
         double physicalBoost = 1;
 
         if (isPhysicalDamage(event)) {

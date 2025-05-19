@@ -16,10 +16,9 @@ public class FireEvaporateReaction implements ElementReaction {
 
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
-        float originalDamage = event.getOriginalDamage();
+        float originalDamage = event.getNewDamage();
         float boostedDamage = (float) (originalDamage * (1.5 * ReactionEvent.CalculateBlessingBonus(astralBlessing)));
         event.setNewDamage(boostedDamage);
-        System.out.println("2");
         ReactionEvent.ConsumeElement(event, "water", 200, "fire");
     }
 }

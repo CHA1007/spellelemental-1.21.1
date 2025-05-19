@@ -26,7 +26,7 @@ public class ReactionEvent {
         DamageSource damageSource = attacker.damageSources().magic();
         for (LivingEntity entity : targets) {
             entity.hurt(damageSource, overloadDamage);
-            DamageEvent.CancelSpellUnbeatableFrames(target);
+            DamageEvent.CancelSpellUnbeatableFrames(entity);
         }
     }
 
@@ -45,7 +45,7 @@ public class ReactionEvent {
         DamageSource damageSource = attacker.damageSources().lightningBolt();
         for (LivingEntity entity : targets) {
             entity.hurt(damageSource, overloadDamage);
-            DamageEvent.CancelSpellUnbeatableFrames(target);
+            DamageEvent.CancelSpellUnbeatableFrames(entity);
         }
     }
 
@@ -64,7 +64,7 @@ public class ReactionEvent {
         DamageSource damageSource = attacker.damageSources().freeze();
         for (LivingEntity entity : targets) {
             entity.hurt(damageSource, overloadDamage);
-            DamageEvent.CancelSpellUnbeatableFrames(target);
+            DamageEvent.CancelSpellUnbeatableFrames(entity);
         }
     }
 
@@ -83,7 +83,7 @@ public class ReactionEvent {
         DamageSource damageSource = attacker.damageSources().inFire();
         for (LivingEntity entity : targets) {
             entity.hurt(damageSource, overloadDamage);
-            DamageEvent.CancelSpellUnbeatableFrames(target);
+            DamageEvent.CancelSpellUnbeatableFrames(entity);
         }
     }
 
@@ -117,6 +117,7 @@ public class ReactionEvent {
             case "nature" -> entity.getData(SpellAttachments.NATURE_ELEMENT).setValue(value);
             case "electro" -> entity.getData(SpellAttachments.PROMOTION_ELEMENT).setValue(value);
             case "freeze" -> entity.getData(SpellAttachments.FREEZE_ELEMENT).setValue(value);
+            case "dewspark" -> entity.getData(SpellAttachments.DEWSPARK_LAYERS).setValue(value);
             default -> throw new IllegalArgumentException("未知元素: " + element);
         }
     }
@@ -130,6 +131,7 @@ public class ReactionEvent {
             case "nature" -> entity.getData(SpellAttachments.NATURE_ELEMENT).getValue();
             case "electro" -> entity.getData(SpellAttachments.PROMOTION_ELEMENT).getValue();
             case "freeze" -> entity.getData(SpellAttachments.FREEZE_ELEMENT).getValue();
+            case "dewspark" -> entity.getData(SpellAttachments.DEWSPARK_LAYERS).getValue();
             default -> throw new IllegalArgumentException("未知元素: " + element);
         };
     }

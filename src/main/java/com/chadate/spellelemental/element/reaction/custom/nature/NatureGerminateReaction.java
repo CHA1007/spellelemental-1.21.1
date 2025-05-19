@@ -16,7 +16,7 @@ public class NatureGerminateReaction implements ElementReaction {
 
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
-        float originalDamage = event.getOriginalDamage();
+        float originalDamage = event.getNewDamage();
         float finalDamage = ReactionEvent.ElectroReactiveteDamage(originalDamage, 1.25f, astralBlessing);
         event.setNewDamage(finalDamage);
     }

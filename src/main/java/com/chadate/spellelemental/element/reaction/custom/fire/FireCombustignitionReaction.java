@@ -22,7 +22,7 @@ public class FireCombustignitionReaction implements ElementReaction {
         LivingEntity target = event.getEntity();
         float attackDamage = (float) Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
         ReactionEvent.MagicAreaDamage(target, 3, attacker, attackDamage, 2.5f, astralBlessing);
-        target.removeData(SpellAttachments.DEWSPARK_LAYERS);
+        ReactionEvent.ConsumeElement(event, "dewspark", 10, "fire");
         target.removeData(SpellAttachments.DEWSPARK_TIME);
     }
 }

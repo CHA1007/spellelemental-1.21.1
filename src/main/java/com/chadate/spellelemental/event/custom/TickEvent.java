@@ -3,6 +3,7 @@ package com.chadate.spellelemental.event.custom;
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.data.custom.ElementsAttachment;
+import com.chadate.spellelemental.event.DamageEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -24,7 +25,6 @@ public class TickEvent {
 
         int time = getDewSparkTimetValue(target);
         int layers = getDewSparkLayersValue(target);
-
         if (time > 0) {
             time -= 10;
             setDewSparkTimeValue(target, time);
@@ -120,12 +120,12 @@ public class TickEvent {
         if (target.getData(SpellAttachments.ICE_ELEMENT).getValue() > 0 && target.getData(SpellAttachments.WATER_ELEMENT).getValue() > 0 && !(target.getData(SpellAttachments.FREEZE_ELEMENT).getValue() > 0)){
 
             if (target instanceof Player player) {
-                int freezeResistanceLayers = target.getData(SpellAttachments.FREEZE_LAYERS).getValue();
-                int freezeDuration = target.getData(SpellAttachments.WATER_ELEMENT).getValue()
-                        + target.getData(SpellAttachments.ICE_ELEMENT).getValue();
-                target.getData(SpellAttachments.FREEZE_ELEMENT).setValue((int) ( freezeDuration * (1 - freezeResistanceLayers * 0.1)));
-                target.getData(SpellAttachments.WATER_ELEMENT).setValue(0);
-                target.getData(SpellAttachments.ICE_ELEMENT).setValue(0);
+                int freezeResistanceLayers = player.getData(SpellAttachments.FREEZE_LAYERS).getValue();
+                int freezeDuration = player.getData(SpellAttachments.WATER_ELEMENT).getValue()
+                        + player.getData(SpellAttachments.ICE_ELEMENT).getValue();
+                player.getData(SpellAttachments.FREEZE_ELEMENT).setValue((int) ( freezeDuration * (1 - freezeResistanceLayers * 0.1)));
+                player.getData(SpellAttachments.WATER_ELEMENT).setValue(0);
+                player.getData(SpellAttachments.ICE_ELEMENT).setValue(0);
 
                 if (freezeResistanceLayers > 0) {
                     int newFreezeResistanceLayers =Math.min( freezeResistanceLayers + 1, 5);
@@ -153,7 +153,6 @@ public class TickEvent {
                 }
             }
         }
-
     }
 
     public static void VulnerabilityTick(EntityTickEvent.Pre event) {
@@ -184,6 +183,7 @@ public class TickEvent {
                  && target.getData(SpellAttachments.WATER_ELEMENT).getValue() == 0 ) {
 
             target.hurt(event.getEntity().level().damageSources().inFire(), event.getEntity().getData(SpellAttachments.BURN_DAMAGE).getValue());
+            DamageEvent.CancelSpellUnbeatableFrames(target);
             target.getData(SpellAttachments.FIRE_ELEMENT).setValue(200);
         }
     }

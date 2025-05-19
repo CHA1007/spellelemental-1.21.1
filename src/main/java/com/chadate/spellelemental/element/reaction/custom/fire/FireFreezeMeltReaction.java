@@ -16,7 +16,7 @@ public class FireFreezeMeltReaction implements ElementReaction {
 
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
-        float originalDamage = event.getOriginalDamage();
+        float originalDamage = event.getNewDamage();
         float boostedDamage = originalDamage * (2 * ReactionEvent.CalculateBlessingBonus(astralBlessing));
         event.setNewDamage(boostedDamage);
         ReactionEvent.ConsumeElement(event, "freeze", 400, "fire");
