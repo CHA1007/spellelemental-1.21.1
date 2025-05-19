@@ -16,24 +16,30 @@ import java.util.Comparator;
 import java.util.List;
 
 public class ElementReactionManager {
-    private final List<ElementReaction> reactions = new ArrayList<>();
+    private static final List<ElementReaction> reactions = new ArrayList<>();
 
     public void register(ElementReaction reaction) {
         reactions.add(reaction);
     }
+    static boolean reactionApplied = false;
 
     // 使用优先级排序确保关键反应先触发
     public void handleReaction(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
         List<ElementReaction> sortedReactions = new ArrayList<>(reactions);
         sortedReactions.sort(Comparator.comparingInt(this::getPriority).reversed());
 
+        ElementReactionManager.reactionApplied = false;
         for (ElementReaction reaction : sortedReactions) {
             if (reaction.appliesTo(event.getEntity(), event.getSource())) {
                 reaction.apply(event, attacker, astralBlessing);
+                ElementReactionManager.reactionApplied = true;
             }
         }
     }
 
+    public static boolean getrectionApplied(){
+        return reactionApplied;
+    }
     // 定义反应优先级
     private int getPriority(ElementReaction reaction) {
         //fire reaction

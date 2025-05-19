@@ -2,6 +2,7 @@ package com.chadate.spellelemental;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
+import com.chadate.spellelemental.element.reaction.ElementReactionManager;
 import com.chadate.spellelemental.event.crit.CritEventHandler;
 import com.chadate.spellelemental.event.custom.*;
 import com.chadate.spellelemental.render.ElementRendererRegistry;
@@ -14,7 +15,7 @@ import net.neoforged.neoforge.common.NeoForge;
 @Mod(SpellElemental.MODID)
 public class SpellElemental {
     public static final String MODID = "spellelemental";
-
+    public static final ElementReactionManager REACTION_MANAGER = new ElementReactionManager();
     private static final ElementRendererRegistry RENDERER_REGISTRY = new ElementRendererRegistry();
 
     public SpellElemental(IEventBus modEventBus) {
@@ -24,8 +25,8 @@ public class SpellElemental {
 
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, CritEventHandler::applyCritBonus);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, PhysicalEventHandler::applyPhysicalBonus);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, ReactionEventHandler::handleElementReactions);
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, ElementEventHandler::handleElementAttachment);
-        NeoForge.EVENT_BUS.addListener(EventPriority.LOW, ReactionEventHandler::handleElementReactions);
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, ApplayTickEventHandler::onEntityTick);
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, DamageNumberRenderer::onRenderLevelStage);
         RendererEventHandler.initialize(NeoForge.EVENT_BUS, RENDERER_REGISTRY);

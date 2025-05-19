@@ -19,7 +19,6 @@ public class ReactionEventHandler {
     private static final ElementReactionManager REACTION_MANAGER = new ElementReactionManager();
 
     static {
-        // 只在类加载时注册一次反应
         registerReactions();
     }
 
