@@ -19,6 +19,6 @@ public class FireEvaporateReaction implements ElementReaction {
         float originalDamage = event.getNewDamage();
         float boostedDamage = (float) (originalDamage * (1.5 * ReactionEvent.CalculateBlessingBonus(astralBlessing)));
         event.setNewDamage(boostedDamage);
-        ReactionEvent.ConsumeElement(event, "water", 200, "fire");
+        ReactionEvent.ConsumeElement(event, "water", 200);
     }
 }

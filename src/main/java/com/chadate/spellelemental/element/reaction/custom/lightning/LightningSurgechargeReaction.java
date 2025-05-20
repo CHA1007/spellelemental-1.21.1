@@ -27,7 +27,7 @@ public class LightningSurgechargeReaction implements ElementReaction {
 
         DamageSource damageSource = attacker.damageSources().magic();
         target.hurt(damageSource, overloadDamage * dewsparkLayers);
-        ReactionEvent.ConsumeElement(event, "dewspark", 10, "lightning");
+        ReactionEvent.ConsumeElement(event, "dewspark", 10);
         target.removeData(SpellAttachments.DEWSPARK_TIME);
     }
 }

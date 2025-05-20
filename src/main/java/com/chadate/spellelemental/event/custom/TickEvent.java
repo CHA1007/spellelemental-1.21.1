@@ -2,7 +2,7 @@ package com.chadate.spellelemental.event.custom;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.data.custom.ElementsAttachment;
+import com.chadate.spellelemental.data.ElementsAttachment;
 import com.chadate.spellelemental.event.DamageEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;

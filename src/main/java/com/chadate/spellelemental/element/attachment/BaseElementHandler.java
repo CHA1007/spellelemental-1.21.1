@@ -1,6 +1,6 @@
 package com.chadate.spellelemental.element.attachment;
 
-import com.chadate.spellelemental.data.custom.ElementsAttachment;
+import com.chadate.spellelemental.data.ElementsAttachment;
 import com.chadate.spellelemental.network.custom.ElementData;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;

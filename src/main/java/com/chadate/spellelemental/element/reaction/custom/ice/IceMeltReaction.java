@@ -19,6 +19,6 @@ public class IceMeltReaction implements ElementReaction {
         float originalDamage = event.getNewDamage();
         float boostedDamage = (float) (originalDamage * (1.5 * ReactionEvent.CalculateBlessingBonus(astralBlessing)));
         event.setNewDamage(boostedDamage);
-        ReactionEvent.ConsumeElement(event, "fire", 100, "ice");
+        ReactionEvent.ConsumeElement(event, "fire", 100);
     }
 }

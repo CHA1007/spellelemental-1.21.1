@@ -1,7 +1,6 @@
 package com.chadate.spellelemental.data;
 
 import com.chadate.spellelemental.SpellElemental;
-import com.chadate.spellelemental.data.custom.ElementsAttachment;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredRegister;

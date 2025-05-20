@@ -35,6 +35,6 @@ public class IceSuperconductiveReaction implements ElementReaction {
             event.getEntity().getData(SpellAttachments.VULNERABILITY_ELEMENT).setValue(240);
         }
 
-        ReactionEvent.ConsumeElement(event, "lightning", 200, "ice");
+        ReactionEvent.ConsumeElement(event, "lightning", 200);
     }
 }

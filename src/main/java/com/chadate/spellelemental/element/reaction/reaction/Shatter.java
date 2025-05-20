@@ -1,8 +1,9 @@
-package com.chadate.spellelemental.element.reaction.custom.fire;
+package com.chadate.spellelemental.element.reaction.reaction;
 
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.ElementReaction;
 import com.chadate.spellelemental.event.ReactionEvent;
+import com.chadate.spellelemental.event.custom.PhysicalDamageEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -10,19 +11,17 @@ import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 import java.util.Objects;
 
-public class FireCombustignitionReaction implements ElementReaction {
+public class Shatter implements ElementReaction {
     @Override
     public boolean appliesTo(LivingEntity target, DamageSource source) {
-        return  "fire_magic".equals(source.getMsgId())
-                && target.getData(SpellAttachments.DEWSPARK_LAYERS).getValue() > 0;
+        return  ((PhysicalDamageEvent.isPhysicalDamage(source)) && target.getData(SpellAttachments.FREEZE_ELEMENT).getValue() > 0);
     }
 
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
-        LivingEntity target = event.getEntity();
         float attackDamage = (float) Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
-        ReactionEvent.MagicAreaDamage(target, 3, attacker, attackDamage, 2.5f, astralBlessing);
-        ReactionEvent.ConsumeElement(event, "dewspark", 10);
-        target.removeData(SpellAttachments.DEWSPARK_TIME);
+        float electroDamage = ReactionEvent.CalculateOverloadDamage(attackDamage, 3f, astralBlessing);
+        event.getEntity().hurt(attacker.damageSources().generic(), electroDamage);
+        ReactionEvent.ConsumeElement(event, "freeze", 1000);
     }
 }

@@ -1,4 +1,4 @@
-package com.chadate.spellelemental.element.reaction.custom.lightning;
+package com.chadate.spellelemental.element.reaction.reaction;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
@@ -13,11 +13,11 @@ import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 import java.util.Objects;
 
-public class LightningSuperconductiveReaction implements ElementReaction {
+public class Superconduct implements ElementReaction {
     @Override
     public boolean appliesTo(LivingEntity target, DamageSource source) {
-        return  "lightning_magic".equals(source.getMsgId())
-                && target.getData(SpellAttachments.ICE_ELEMENT).getValue() > 0;
+        return  ("lightning".equals(source.getMsgId()) && target.getData(SpellAttachments.ICE_ELEMENT).getValue() > 0)
+                || ("ice_magic".equals(source.getMsgId()) && target.getData(SpellAttachments.LIGHTNING_ELEMENT).getValue() > 0);
     }
 
     @Override
@@ -36,5 +36,6 @@ public class LightningSuperconductiveReaction implements ElementReaction {
         }
 
         ReactionEvent.ConsumeElement(event, "ice", 200);
+        ReactionEvent.ConsumeElement(event, "lightning", 200);
     }
 }

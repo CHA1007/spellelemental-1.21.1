@@ -1,8 +1,7 @@
 package com.chadate.spellelemental.network.custom;
 
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.data.custom.ElementsAttachment;
-import net.minecraft.network.chat.Component;
+import com.chadate.spellelemental.data.ElementsAttachment;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.attachment.AttachmentType;

@@ -35,6 +35,6 @@ public class LightningFreezeVulnerableReaction implements ElementReaction {
             event.getEntity().getData(SpellAttachments.VULNERABILITY_ELEMENT).setValue(240);
         }
 
-        ReactionEvent.ConsumeElement(event, "freeze", 400, "lightning");
+        ReactionEvent.ConsumeElement(event, "freeze", 400);
     }
 }

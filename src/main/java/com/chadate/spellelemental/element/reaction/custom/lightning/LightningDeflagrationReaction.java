@@ -21,6 +21,6 @@ public class LightningDeflagrationReaction implements ElementReaction {
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
         double attackDamage = Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
         ReactionEvent.FireAreaDamage(event.getEntity(), 3, attacker, attackDamage, 2.75f, astralBlessing);
-        ReactionEvent.ConsumeElement(event, "fire", 200, "lightning");
+        ReactionEvent.ConsumeElement(event, "fire", 200);
     }
 }

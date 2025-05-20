@@ -18,6 +18,6 @@ public class NaturePromotionReaction implements ElementReaction {
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
         LivingEntity target = event.getEntity();
         target.getData(SpellAttachments.PROMOTION_ELEMENT).setValue(target.getData(SpellAttachments.LIGHTNING_ELEMENT).getValue());
-        ReactionEvent.ConsumeElement(event, "lightning", 200, "nature");
+        ReactionEvent.ConsumeElement(event, "lightning", 200);
     }
 }

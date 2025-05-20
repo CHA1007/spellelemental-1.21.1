@@ -91,13 +91,12 @@ public class ReactionEvent {
         return originalDamage * reactivityMultiplier * (1 + (5 * astralBlessing) / (astralBlessing + 1200));
     }
 
-  public static void ConsumeElement(LivingDamageEvent.Pre event, String consumedElement, int consumeAmount, String resetElement) {
+  public static void ConsumeElement(LivingDamageEvent.Pre event, String consumedElement, int consumeAmount) {
     LivingEntity target = event.getEntity();
     int current = getElementAttachment(target, consumedElement);
     int newAmount = Math.max(current - consumeAmount, 0);
 
     setElementAttachment(target, consumedElement, newAmount);
-    setElementAttachment(target, resetElement, 0);
 }
 
     public static float CalculateOverloadDamage(float attackDamage, float reactionMultiplier, float astralBlessing) {

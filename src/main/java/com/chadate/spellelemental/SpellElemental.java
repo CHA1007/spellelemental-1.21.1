@@ -2,10 +2,15 @@ package com.chadate.spellelemental;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.element.reaction.ElementReactionManager;
+import com.chadate.spellelemental.element.attachment.ElementEventHandler;
+import com.chadate.spellelemental.element.attachment.ElementHandlerRegistrar;
+import com.chadate.spellelemental.element.reaction.ReactionEventHandler;
 import com.chadate.spellelemental.event.crit.CritEventHandler;
 import com.chadate.spellelemental.event.custom.*;
-import com.chadate.spellelemental.render.ElementRendererRegistry;
+import com.chadate.spellelemental.render.element.ElementRendererRegistry;
+import com.chadate.spellelemental.render.damage.DamageNumberRenderer;
+import com.chadate.spellelemental.render.element.RendererEventHandler;
+import com.chadate.spellelemental.tick.ApplayTickEventHandler;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.bus.api.IEventBus;
@@ -15,7 +20,6 @@ import net.neoforged.neoforge.common.NeoForge;
 @Mod(SpellElemental.MODID)
 public class SpellElemental {
     public static final String MODID = "spellelemental";
-    public static final ElementReactionManager REACTION_MANAGER = new ElementReactionManager();
     private static final ElementRendererRegistry RENDERER_REGISTRY = new ElementRendererRegistry();
 
     public SpellElemental(IEventBus modEventBus) {
@@ -29,8 +33,8 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, ElementEventHandler::handleElementAttachment);
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, ApplayTickEventHandler::onEntityTick);
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, DamageNumberRenderer::onRenderLevelStage);
+        ElementHandlerRegistrar.registerDefaultHandlers();
         RendererEventHandler.initialize(NeoForge.EVENT_BUS, RENDERER_REGISTRY);
-        ElementHandlerRegistrar.registerWithConfiguration(new ElementHandlerConfig(true, true, true, true));
 
     }
     private void commonSetup(final FMLCommonSetupEvent event) {

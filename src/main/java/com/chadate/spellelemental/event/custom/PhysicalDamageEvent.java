@@ -14,8 +14,9 @@ public class PhysicalDamageEvent {
         LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
         double originalDamage = event.getNewDamage();
         double physicalBoost = 1;
+        DamageSource source = event.getSource();
 
-        if (isPhysicalDamage(event)) {
+        if (isPhysicalDamage(source)) {
             if (attacker != null) {
                 physicalBoost = Objects.requireNonNull(attacker.getAttribute(ModAttributes.PHYSICAL_DAMAGE_BOOST)).getValue();
             }
@@ -37,8 +38,7 @@ public class PhysicalDamageEvent {
         return resistanceMultiplier;
     }
 
-    public static boolean isPhysicalDamage(LivingDamageEvent.Pre event) {
-        DamageSource source = event.getSource();
+    public static boolean isPhysicalDamage(DamageSource source) {
         return source.is(Tags.DamageTypes.IS_PHYSICAL);
     }
 }
