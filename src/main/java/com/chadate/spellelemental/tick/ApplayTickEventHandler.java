@@ -2,6 +2,7 @@ package com.chadate.spellelemental.tick;
 
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.data.ElementsAttachment;
+import com.chadate.spellelemental.entity.CustomFreezeController;
 import com.chadate.spellelemental.event.custom.TickEvent;
 import com.chadate.spellelemental.network.custom.ElementData;
 import net.minecraft.world.entity.Entity;
@@ -35,7 +36,7 @@ public class ApplayTickEventHandler {
         if (event.getEntity().tickCount % 10 == 0) {
             TickEvent.ElectroReaction(event);
             TickEvent.VulnerabilityTick(event);
-            TickEvent.CheckFreezeStatus(event);
+            CustomFreezeController.CheckFreezeStatus(event);
             TickEvent.FreezeElementTick(event);
             TickEvent.CheckDewSparkLayer(event);
         }

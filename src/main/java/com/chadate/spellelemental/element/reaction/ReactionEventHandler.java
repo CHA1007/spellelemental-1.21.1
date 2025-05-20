@@ -26,32 +26,6 @@ public class ReactionEventHandler {
         REACTION_MANAGER.register(new TriggerPromotion());
         REACTION_MANAGER.register(new DewSpark());
         REACTION_MANAGER.register(new TriggerDewSpark());
-//        REACTION_MANAGER.register(new FirePromotionReaction());
-//        REACTION_MANAGER.register(new FireCombustignitionReaction());
-//        REACTION_MANAGER.register(new FireDeflagrationReaction());
-//        REACTION_MANAGER.register(new FireFreezeMeltReaction());
-//        REACTION_MANAGER.register(new FireEvaporateReaction());
-//        REACTION_MANAGER.register(new FireMeltReaction());
-//        REACTION_MANAGER.register(new FireBurnReaction());
-//
-//        // lightning reactions
-//        REACTION_MANAGER.register(new LightningSurgechargeReaction());
-//        REACTION_MANAGER.register(new LightningSurgeReaction());
-//        REACTION_MANAGER.register(new LightningDeflagrationReaction());
-//        REACTION_MANAGER.register(new LightningFreezeVulnerableReaction());
-//        REACTION_MANAGER.register(new LightningElectroReaction());
-//        REACTION_MANAGER.register(new LightningSuperconductiveReaction());
-//        REACTION_MANAGER.register(new LightningPromotionReaction());
-//
-//        // ice reactions
-//        REACTION_MANAGER.register(new IceSuperconductiveReaction());
-//        REACTION_MANAGER.register(new IceMeltReaction());
-//
-//        // nature reactions
-//        REACTION_MANAGER.register(new NatureGerminateReaction());
-//        REACTION_MANAGER.register(new NatureBurnReaction());
-//        REACTION_MANAGER.register(new NatureDewSparkReaction());
-//        REACTION_MANAGER.register(new NaturePromotionReaction());
     }
 
     @SubscribeEvent

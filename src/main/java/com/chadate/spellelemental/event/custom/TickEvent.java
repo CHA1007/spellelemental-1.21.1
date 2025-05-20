@@ -98,58 +98,18 @@ public class TickEvent {
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
         int freezeDuration = target.getData(SpellAttachments.FREEZE_ELEMENT).getValue();
-        int newFreezeDuration = Math.max( freezeDuration - 40, 0);
+        int newFreezeDuration = Math.max(freezeDuration - 40, 0);
         target.getData(SpellAttachments.FREEZE_ELEMENT).setValue(newFreezeDuration);
 
         if (newFreezeDuration == 0) {
             target.removeData(SpellAttachments.FREEZE_ELEMENT);
 
-            if (target instanceof Player player){
+            if (target instanceof Player player) {
                 target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-            }else{
+            } else {
 
                 if (target instanceof Mob mob) {
                     mob.setNoAi(false);
-                }
-            }
-        }
-    }
-
-    public static void CheckFreezeStatus(EntityTickEvent.Pre event) {
-        if (!(event.getEntity() instanceof LivingEntity target)) return;
-        if (target.getData(SpellAttachments.ICE_ELEMENT).getValue() > 0 && target.getData(SpellAttachments.WATER_ELEMENT).getValue() > 0 && !(target.getData(SpellAttachments.FREEZE_ELEMENT).getValue() > 0)){
-
-            if (target instanceof Player player) {
-                int freezeResistanceLayers = player.getData(SpellAttachments.FREEZE_LAYERS).getValue();
-                int freezeDuration = player.getData(SpellAttachments.WATER_ELEMENT).getValue()
-                        + player.getData(SpellAttachments.ICE_ELEMENT).getValue();
-                player.getData(SpellAttachments.FREEZE_ELEMENT).setValue((int) ( freezeDuration * (1 - freezeResistanceLayers * 0.1)));
-                player.getData(SpellAttachments.WATER_ELEMENT).setValue(0);
-                player.getData(SpellAttachments.ICE_ELEMENT).setValue(0);
-
-                if (freezeResistanceLayers > 0) {
-                    int newFreezeResistanceLayers =Math.min( freezeResistanceLayers + 1, 5);
-                    target.getData(SpellAttachments.FREEZE_LAYERS).setValue(newFreezeResistanceLayers);
-                }else {
-                    target.getData(SpellAttachments.FREEZE_LAYERS).setValue(1);
-                }
-
-                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeDuration, 255, false, false, false));
-            }else {
-                int freezeResistanceLayers = target.getData(SpellAttachments.FREEZE_LAYERS).getValue();
-                int freezeDuration = target.getData(SpellAttachments.WATER_ELEMENT).getValue()
-                        + target.getData(SpellAttachments.ICE_ELEMENT).getValue();
-                target.getData(SpellAttachments.FREEZE_ELEMENT).setValue((int) ( freezeDuration * (1 - freezeResistanceLayers * 0.15)));
-                target.getData(SpellAttachments.WATER_ELEMENT).setValue(0);
-                target.getData(SpellAttachments.ICE_ELEMENT).setValue(0);
-                if (freezeResistanceLayers > 0) {
-                    int newFreezeResistanceLayers =Math.min( freezeResistanceLayers + 1, 5);
-                    target.getData(SpellAttachments.FREEZE_LAYERS).setValue(newFreezeResistanceLayers);
-                }else {
-                    target.getData(SpellAttachments.FREEZE_LAYERS).setValue(1);
-                }
-                if (target instanceof Mob mob) {
-                    mob.setNoAi(true);
                 }
             }
         }
