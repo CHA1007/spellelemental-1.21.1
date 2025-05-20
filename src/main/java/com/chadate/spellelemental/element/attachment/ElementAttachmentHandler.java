@@ -1,0 +1,9 @@
+package com.chadate.spellelemental.element.attachment;
+
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+
+public interface ElementAttachmentHandler {
+    boolean canApply(LivingEntity target, DamageSource source);
+    void applyEffect(LivingEntity target, DamageSource source, int entityId);
+}

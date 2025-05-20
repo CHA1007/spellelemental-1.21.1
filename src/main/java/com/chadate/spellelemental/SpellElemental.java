@@ -2,11 +2,11 @@ package com.chadate.spellelemental;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.element.attachment.attack.ElementEventHandler;
-import com.chadate.spellelemental.element.attachment.attack.ElementHandlerRegistrar;
-import com.chadate.spellelemental.element.reaction.custom.ReactionEventHandler;
+import com.chadate.spellelemental.element.attachment.ElementEventHandler;
+import com.chadate.spellelemental.element.attachment.ElementHandlerRegistrar;
+import com.chadate.spellelemental.element.reaction.ReactionEventHandler;
 import com.chadate.spellelemental.event.crit.CritEventHandler;
-import com.chadate.spellelemental.event.physical.*;
+import com.chadate.spellelemental.event.custom.*;
 import com.chadate.spellelemental.render.element.ElementRendererRegistry;
 import com.chadate.spellelemental.render.damage.DamageNumberRenderer;
 import com.chadate.spellelemental.render.element.RendererEventHandler;
