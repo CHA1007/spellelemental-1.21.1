@@ -9,24 +9,52 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 public class CustomFreezeController {
+    // 每tick衰减的冻结值
+    private static final int FREEZE_DECAY_PER_TICK = 4;
 
     public static void CheckFreezeStatus(EntityTickEvent.Pre event) {
         if (!(event.getEntity() instanceof LivingEntity target)) return;
-
-        CustomFreezeController.shouldBeFrozen(target);// 冻结效果已经在shouldBeFrozen方法中自动应用
-
+        // 检查是否应该被冻结
+        shouldBeFrozen(target);
+        // 处理冻结效果
+        handleFreezeEffect(event, target);
+    }
+    
+    /**
+     * 处理冻结效果
+     * @param event 实体tick事件
+     * @param entity 要处理的实体
+     */
+    private static void handleFreezeEffect(EntityTickEvent.Pre event, LivingEntity entity) {
+        if (!isFrozen(entity)) return;
+        
+        // 获取当前冻结时间
+        int currentDuration = getFreezeDuration(entity);
+        
+        // 每tick减少冻结值
+        int newDuration = Math.max(currentDuration - FREEZE_DECAY_PER_TICK, 0);
+        entity.getData(SpellAttachments.FREEZE_ELEMENT).setValue(newDuration);
+        // 如果冻结时间结束，移除冻结效果
+        if (newDuration == 0) {
+            removeFreeze(entity);
+            return;
+        }
+        
+        // 如果是生物，禁用AI
+        if (entity instanceof Mob mob) {
+            mob.setNoAi(true);
+        }
     }
     
     /**
      * 检查实体是否应该被冻结
      * 当实体同时具有冰元素和水元素，且当前未被冻结时，应该被冻结
      * @param entity 要检查的实体
-     * @return 如果实体应该被冻结则返回true，否则返回false
      */
-    public static boolean shouldBeFrozen(LivingEntity entity) {
+    public static void shouldBeFrozen(LivingEntity entity) {
         // 检查实体是否已经处于冻结状态
         if (isFrozen(entity)) {
-            return false;
+             return;
         }
         
         // 检查实体是否同时具有冰元素和水元素
@@ -45,11 +73,9 @@ public class CustomFreezeController {
             if (actualDuration > 0) {
                 // 应用冻结效果
                 applyFreeze(entity, freezeLayers);
-                return true;
             }
         }
-        
-        return false;
+
     }
     
     /**
@@ -75,7 +101,7 @@ public class CustomFreezeController {
         if (entity instanceof Player) {
             entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, actualDuration, 255, false, false, false));
         } else if (entity instanceof Mob) {
-            // 禁用生物的AI
+            // 初始时禁用生物的AI
             ((Mob) entity).setNoAi(true);
         }
         
@@ -86,7 +112,6 @@ public class CustomFreezeController {
         } else {
             entity.getData(SpellAttachments.FREEZE_LAYERS).setValue(1);
         }
-        
         // 清除冰元素和水元素
         entity.getData(SpellAttachments.ICE_ELEMENT).setValue(0);
         entity.getData(SpellAttachments.WATER_ELEMENT).setValue(0);
