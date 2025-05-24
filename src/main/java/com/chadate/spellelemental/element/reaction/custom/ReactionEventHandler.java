@@ -2,6 +2,7 @@ package com.chadate.spellelemental.element.reaction.custom;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.element.reaction.basic.*;
+import com.chadate.spellelemental.element.reaction.effect.Hemopyre;
 import com.chadate.spellelemental.event.element.DamageEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -18,14 +19,15 @@ public class ReactionEventHandler {
         REACTION_MANAGER.register(new Vaporize());
         REACTION_MANAGER.register(new Melt());
         REACTION_MANAGER.register(new Overload());
-//        REACTION_MANAGER.register(new ElectroChargedDamage());
+        REACTION_MANAGER.register(new ElectroChargedDamage());
         REACTION_MANAGER.register(new Superconduct());
         REACTION_MANAGER.register(new Shatter());
         REACTION_MANAGER.register(new Promotion());
         REACTION_MANAGER.register(new TriggerPromotion());
         REACTION_MANAGER.register(new DewSpark());
         REACTION_MANAGER.register(new TriggerDewSpark());
-//        REACTION_MANAGER.register(new BurningDamage());
+        REACTION_MANAGER.register(new BurningDamage());
+        REACTION_MANAGER.register(new Hemopyre());
     }
 
     @SubscribeEvent

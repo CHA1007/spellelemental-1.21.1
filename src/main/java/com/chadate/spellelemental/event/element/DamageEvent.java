@@ -30,4 +30,8 @@ public class DamageEvent {
     public static void CancelSpellUnbeatableFrames(LivingEntity target) {
         target.invulnerableTime = 0;
     }
+
+    public static void setDamageUnbeatable(LivingEntity target, int duration) {
+        target.invulnerableTime = duration;
+    }
 }

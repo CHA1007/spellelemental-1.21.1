@@ -17,7 +17,7 @@ public class ApplayTickEventHandler {
 
         ElementsEnvironment.applyWaterElementAttachment(entity);
         ElementDecay.processElements(entity, entityId);
-        CustomFreezeController.CheckFreezeStatus(event);
+//        CustomFreezeController.CheckFreezeStatus(event);
         SpecialElementReactionHandler.handleEntityTick(event);
         TickEvent.VulnerabilityTick(event);
         TickEvent.CheckDewSparkLayer(event);

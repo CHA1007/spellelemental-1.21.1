@@ -22,11 +22,11 @@ public class Overload implements ElementReaction {
         String damageSource = event.getSource().getMsgId();
         double attackDamage = Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
         if ("fire_magic".equals(damageSource)) {
-            ReactionEvent.FireAreaDamage(event.getEntity(), 3, attacker, attackDamage, 2.75f, astralBlessing);
-            ReactionEvent.ConsumeElement(event, "lightning", 200);
+            ReactionEvent.FireAreaDamage(event.getEntity(), 1, attacker, attackDamage, 2.75f, astralBlessing);
+            ReactionEvent.ConsumeElement(event, "lightning", 200, "fire");
         }else if ("lightning_magic".equals(damageSource)){
-            ReactionEvent.FireAreaDamage(event.getEntity(), 3, attacker, attackDamage, 2.75f, astralBlessing);
-            ReactionEvent.ConsumeElement(event, "fire", 200);
+            ReactionEvent.FireAreaDamage(event.getEntity(), 1, attacker, attackDamage, 2.75f, astralBlessing);
+            ReactionEvent.ConsumeElement(event, "fire", 200, "lightning");
         }
     }
 }

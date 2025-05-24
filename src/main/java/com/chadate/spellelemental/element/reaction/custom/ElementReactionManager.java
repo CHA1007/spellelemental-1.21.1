@@ -1,6 +1,7 @@
 package com.chadate.spellelemental.element.reaction.custom;
 
 import com.chadate.spellelemental.element.reaction.basic.*;
+import com.chadate.spellelemental.element.reaction.effect.Hemopyre;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
@@ -46,6 +47,7 @@ public class ElementReactionManager {
         if (reaction instanceof DewSpark) return 9;
         if (reaction instanceof TriggerDewSpark) return 10;
         if (reaction instanceof BurningDamage) return 11;
+        if (reaction instanceof Hemopyre) return 12;
 
         return 0;
     }

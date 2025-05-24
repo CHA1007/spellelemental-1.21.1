@@ -110,7 +110,26 @@ public class TickEvent {
             }
 
             livingEntity.getData(SpellAttachments.VULNERABILITY_ELEMENT).setValue(0);
-            livingEntity.removeData(SpellAttachments.VULNERABILITY_ELEMENT);
+        }
+    }
+
+    public static void boilingBloodTick(EntityTickEvent.Pre event) {
+        if (!(event.getEntity() instanceof LivingEntity livingEntity)) return;
+
+        ElementsAttachment boilingBloodData = livingEntity.getData(SpellAttachments.BOLIING_BLOOD);
+        int duration = boilingBloodData.getValue();
+
+        if (duration > 0) {
+            livingEntity.getData(SpellAttachments.BOLIING_BLOOD).setValue(Math.max(duration - 1, 0));
+        }
+
+        if (duration <= 0) {
+            AttributeInstance resistAttribute = livingEntity.getAttribute(ModAttributes.HEALING_POWER);
+            if (resistAttribute != null) {
+                resistAttribute.removeModifier(ResourceLocation.parse("boiling_blood"));
+            }
+
+            livingEntity.getData(SpellAttachments.BOLIING_BLOOD).setValue(0);
         }
     }
 }

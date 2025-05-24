@@ -2,7 +2,7 @@ package com.chadate.spellelemental.element.decay;
 
 import com.chadate.spellelemental.data.ElementsAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.network.custom.ElementData;
+import com.chadate.spellelemental.cilent.network.custom.ElementData;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.attachment.AttachmentType;
@@ -21,6 +21,10 @@ public class ElementDecay {
         processElement(entity, entityId, SpellAttachments.WATER_ELEMENT, "water_element");
         processElement(entity, entityId, SpellAttachments.NATURE_ELEMENT, "nature_element");
         processElement(entity, entityId, SpellAttachments.PROMOTION_ELEMENT, "promotion_element");
+        processElement(entity, entityId, SpellAttachments.BLOOD_ELEMENT, "blood_element");
+        processElement(entity, entityId, SpellAttachments.ENDER_ELEMENT, "ender_element");
+        processElement(entity, entityId, SpellAttachments.HOLY_ELEMENT, "holy_element");
+        processElement(entity, entityId, SpellAttachments.BOLIING_BLOOD, "boiling_blood");
     }
 
     private static final Map<String, Boolean> elementZeroStateCache = new HashMap<>();

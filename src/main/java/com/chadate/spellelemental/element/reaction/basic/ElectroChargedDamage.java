@@ -3,6 +3,7 @@ package com.chadate.spellelemental.element.reaction.basic;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.custom.ElementReaction;
 import com.chadate.spellelemental.event.element.ReactionEvent;
+import com.chadate.spellelemental.event.element.ReactionInjuryFormula;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -20,7 +21,7 @@ public class ElectroChargedDamage implements ElementReaction {
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
         float attackDamage = (float) Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
-        float electroDamage = ReactionEvent.CalculateOverloadDamage(attackDamage, 2.0f, astralBlessing);
+        float electroDamage = ReactionInjuryFormula.CalculateOverloadDamage(attackDamage, 2.0f, astralBlessing);
         event.getEntity().getData(SpellAttachments.ELECTRO_DAMAGE).setValue((int) electroDamage);
     }
 }

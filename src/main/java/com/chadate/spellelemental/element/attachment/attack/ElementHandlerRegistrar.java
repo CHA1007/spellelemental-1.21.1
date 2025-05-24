@@ -1,9 +1,6 @@
 package com.chadate.spellelemental.element.attachment.attack;
 
-import com.chadate.spellelemental.element.attachment.attack.custom.FireElementHandler;
-import com.chadate.spellelemental.element.attachment.attack.custom.IceElementHandler;
-import com.chadate.spellelemental.element.attachment.attack.custom.LightningElementHandler;
-import com.chadate.spellelemental.element.attachment.attack.custom.NatureElementHandler;
+import com.chadate.spellelemental.element.attachment.attack.custom.*;
 
 public class ElementHandlerRegistrar {
     public static void registerDefaultHandlers() {
@@ -11,6 +8,9 @@ public class ElementHandlerRegistrar {
         ElementAttachmentRegistry.register(new IceElementHandler());
         ElementAttachmentRegistry.register(new LightningElementHandler());
         ElementAttachmentRegistry.register(new NatureElementHandler());
+        ElementAttachmentRegistry.register(new HolyElementHander());
+        ElementAttachmentRegistry.register(new EnderElementHadler());
+        ElementAttachmentRegistry.register(new BloodElementHandler());
     }
 
     public static void registerWithConfiguration(ElementHandlerConfig config) {
@@ -25,6 +25,15 @@ public class ElementHandlerRegistrar {
         }
         if (config.enableNature()) {
             ElementAttachmentRegistry.register(new NatureElementHandler());
+        }
+        if (config.enableHoly()) {
+            ElementAttachmentRegistry.register(new HolyElementHander());
+        }
+        if (config.enableEnder()) {
+            ElementAttachmentRegistry.register(new EnderElementHadler());
+        }
+        if (config.enableBlood()) {
+            ElementAttachmentRegistry.register(new BloodElementHandler());
         }
     }
 }

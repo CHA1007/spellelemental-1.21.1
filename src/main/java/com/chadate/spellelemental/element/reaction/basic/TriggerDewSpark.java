@@ -2,8 +2,8 @@ package com.chadate.spellelemental.element.reaction.basic;
 
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.custom.ElementReaction;
-import com.chadate.spellelemental.event.element.DamageEvent;
 import com.chadate.spellelemental.event.element.ReactionEvent;
+import com.chadate.spellelemental.event.element.ReactionInjuryFormula;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -25,15 +25,15 @@ public class TriggerDewSpark implements ElementReaction {
         float attackDamage = (float) Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
         int dewsparkLayers = target.getData(SpellAttachments.DEWSPARK_LAYERS).getValue();
         if ("fire_magic".equals(damageSource)) {
-            ReactionEvent.MagicAreaDamage(target, 3f, attacker, attackDamage, 2.5f * dewsparkLayers, astralBlessing);
-            ReactionEvent.ConsumeElement(event, "dewspark", 10);
+            ReactionEvent.MagicAreaDamage(target, 1f, attacker, attackDamage, 2.5f * dewsparkLayers, astralBlessing);
+            ReactionEvent.ConsumeElement(event, "dewspark", 10, "fire");
             target.removeData(SpellAttachments.DEWSPARK_TIME);
 
         } else if ("lightning_magic".equals(damageSource)) {
-            float overloadDamage = ReactionEvent.CalculateOverloadDamage(attackDamage, 3f, astralBlessing);
+            float overloadDamage = ReactionInjuryFormula.CalculateOverloadDamage(attackDamage, 3f, astralBlessing);
             DamageSource damageSourceAttack = attacker.damageSources().magic();
             target.hurt(damageSourceAttack, overloadDamage * dewsparkLayers);
-            ReactionEvent.ConsumeElement(event, "dewspark", 10);
+            ReactionEvent.ConsumeElement(event, "dewspark", 10,  "lightning");
             target.removeData(SpellAttachments.DEWSPARK_TIME);
 
         }

@@ -5,10 +5,20 @@ public record ElementHandlerConfig(
         boolean enableFire,
         boolean enableIce,
         boolean enableLightning,
-        boolean  enableNature
+        boolean enableNature,
+        boolean enableHoly,
+        boolean enableEnder,
+        boolean enableBlood
 
 ) {
     public static ElementHandlerConfig getDefault() {
-        return new ElementHandlerConfig(true, true, true, true);
+        return new ElementHandlerConfig(
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true);
     }
 }

@@ -3,6 +3,7 @@ package com.chadate.spellelemental.element.reaction.basic;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.custom.ElementReaction;
 import com.chadate.spellelemental.event.element.ReactionEvent;
+import com.chadate.spellelemental.event.element.ReactionInjuryFormula;
 import com.chadate.spellelemental.event.physical.PhysicalDamageEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,8 +21,8 @@ public class Shatter implements ElementReaction {
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
         float attackDamage = (float) Objects.requireNonNull(attacker.getAttribute(Attributes.ATTACK_DAMAGE)).getValue();
-        float electroDamage = ReactionEvent.CalculateOverloadDamage(attackDamage, 3f, astralBlessing);
+        float electroDamage = ReactionInjuryFormula.CalculateOverloadDamage(attackDamage, 3f, astralBlessing);
         event.getEntity().hurt(attacker.damageSources().generic(), electroDamage);
-        ReactionEvent.ConsumeElement(event, "freeze", 1000);
+        ReactionEvent.ConsumeElement(event, "freeze", 1000, "null");
     }
 }

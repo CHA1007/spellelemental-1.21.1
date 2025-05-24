@@ -27,6 +27,15 @@ public class SpellAttachments {
     public static final Supplier<AttachmentType<ElementsAttachment>> NATURE_ELEMENT = ATTACHMENT_TYPES.register(
             "nature_element", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
     );
+    public static final Supplier<AttachmentType<ElementsAttachment>> HOLY_ELEMENT = ATTACHMENT_TYPES.register(
+            "holy_element", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
+    );
+    public static final Supplier<AttachmentType<ElementsAttachment>> BLOOD_ELEMENT = ATTACHMENT_TYPES.register(
+            "blood_element", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
+    );
+    public static final Supplier<AttachmentType<ElementsAttachment>> ENDER_ELEMENT = ATTACHMENT_TYPES.register(
+            "ender_element", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
+    );
     public static final Supplier<AttachmentType<ElementsAttachment>> BURN_DAMAGE = ATTACHMENT_TYPES.register(
             "burn_damage", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
     );
@@ -53,6 +62,9 @@ public class SpellAttachments {
     );
     public static final Supplier<AttachmentType<ElementsAttachment>> FREEZE_LAYERS = ATTACHMENT_TYPES.register(
             "freeze_layers", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
+    );
+    public static final Supplier<AttachmentType<ElementsAttachment>> BOLIING_BLOOD = ATTACHMENT_TYPES.register(
+            "boiling_blood", () -> AttachmentType.builder(() -> new ElementsAttachment(0)).build()
     );
 
     public static void register(IEventBus eventBus) {

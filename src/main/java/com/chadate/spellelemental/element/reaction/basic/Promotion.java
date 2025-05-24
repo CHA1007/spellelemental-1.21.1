@@ -17,8 +17,13 @@ public class Promotion implements ElementReaction {
     @Override
     public void apply(LivingDamageEvent.Pre event, LivingEntity attacker, float astralBlessing) {
         LivingEntity target = event.getEntity();
-        target.getData(SpellAttachments.PROMOTION_ELEMENT).setValue(target.getData(SpellAttachments.NATURE_ELEMENT).getValue());
-        ReactionEvent.ConsumeElement(event, "nature", 200);
-        ReactionEvent.ConsumeElement(event, "lightning", 200);
+        String damageSource = event.getSource().getMsgId();
+        if ("lightning_magic".equals(damageSource)) {
+            target.getData(SpellAttachments.PROMOTION_ELEMENT).setValue(target.getData(SpellAttachments.NATURE_ELEMENT).getValue());
+            ReactionEvent.ConsumeElement(event, "nature", 200, "lightning");
+        } else if ("nature_magic".equals(damageSource)) {
+            target.getData(SpellAttachments.PROMOTION_ELEMENT).setValue(target.getData(SpellAttachments.NATURE_ELEMENT).getValue());
+            ReactionEvent.ConsumeElement(event, "lightning", 200, "nature");
+        }
     }
 }

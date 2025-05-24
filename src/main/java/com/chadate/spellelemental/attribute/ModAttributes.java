@@ -66,6 +66,16 @@ public class ModAttributes {
             ).setSyncable(true)
     );
 
+    public static final DeferredHolder<Attribute, Attribute> HEALING_POWER = ATTRIBUTES.register(
+            "healing_power",
+            () -> new RangedAttribute(
+                "attribute.spellelemental.healing_power",
+                1.0D,
+                0.0D,
+                10000.0D
+            ).setSyncable(true)
+    );
+
     @SubscribeEvent
     public static void modifyEntityAttributes(EntityAttributeModificationEvent e) {
         e.getTypes().forEach(entity -> ATTRIBUTES.getEntries().forEach(attribute -> e.add(entity, attribute)));

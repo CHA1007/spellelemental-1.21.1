@@ -23,6 +23,8 @@ repositories {
         name = "Iron's Maven - Release"
         url = "https://code.redspace.io/releases"
     }
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    mavenCentral()
 }
 
 base {
