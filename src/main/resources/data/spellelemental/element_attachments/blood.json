@@ -2,20 +2,23 @@
   "element_id": "blood",
   "display_name": "Blood Element",
   "attachment_type": "spellelemental:blood_element",
-  "trigger_conditions": {
+  "type": "damage_source",
+  "damage_source_conditions": {
     "damage_source_patterns": ["blood_magic", "*blood*"],
-    "spell_schools": ["blood"],
-    "required_tags": []
+    "minimum_damage": 0.0,
+    "maximum_damage": 999999.0,
+    "required_tags": [],
+    "excluded_tags": []
   },
   "effects": {
+    "element_value": 100,
     "duration": 200,
-    "stack_limit": 10,
-    "decay_rate": 1,
-    "network_sync": true
+    "sync_to_client": true
   },
   "visual": {
-    "icon": "spellelemental:textures/element/blood.png",
+    "particle_effect": "minecraft:crimson_spore",
+    "sound_effect": "minecraft:entity.player.hurt",
     "color": "#8B0000",
-    "particle_effect": "minecraft:block_marker"
+    "animation": "blood_attachment"
   }
 }

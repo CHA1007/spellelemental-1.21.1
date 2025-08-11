@@ -2,20 +2,23 @@
   "element_id": "ice",
   "display_name": "Ice Element",
   "attachment_type": "spellelemental:ice_element",
-  "trigger_conditions": {
-    "damage_source_patterns": ["ice_magic", "*ice*"],
-    "spell_schools": ["ice"],
-    "required_tags": []
+  "type": "damage_source",
+  "damage_source_conditions": {
+    "damage_source_patterns": ["ice_magic", "*ice*", "*frost*"],
+    "minimum_damage": 0.0,
+    "maximum_damage": 999999.0,
+    "required_tags": [],
+    "excluded_tags": []
   },
   "effects": {
+    "element_value": 100,
     "duration": 200,
-    "stack_limit": 10,
-    "decay_rate": 1,
-    "network_sync": true
+    "sync_to_client": true
   },
   "visual": {
-    "icon": "spellelemental:textures/element/ice.png",
+    "particle_effect": "minecraft:snowflake",
+    "sound_effect": "minecraft:block.glass.break",
     "color": "#87CEEB",
-    "particle_effect": "minecraft:snowflake"
+    "animation": "ice_attachment"
   }
 }

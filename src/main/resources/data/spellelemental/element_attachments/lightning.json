@@ -2,20 +2,23 @@
   "element_id": "lightning",
   "display_name": "Lightning Element",
   "attachment_type": "spellelemental:lightning_element",
-  "trigger_conditions": {
+  "type": "damage_source",
+  "damage_source_conditions": {
     "damage_source_patterns": ["lightning_magic", "*lightning*", "*electric*"],
-    "spell_schools": ["lightning"],
-    "required_tags": []
+    "minimum_damage": 0.0,
+    "maximum_damage": 999999.0,
+    "required_tags": [],
+    "excluded_tags": []
   },
   "effects": {
+    "element_value": 100,
     "duration": 200,
-    "stack_limit": 10,
-    "decay_rate": 1,
-    "network_sync": true
+    "sync_to_client": true
   },
   "visual": {
-    "icon": "spellelemental:textures/element/lightning.png",
+    "particle_effect": "minecraft:electric_spark",
+    "sound_effect": "minecraft:entity.lightning_bolt.thunder",
     "color": "#FFD700",
-    "particle_effect": "minecraft:electric_spark"
+    "animation": "lightning_attachment"
   }
 }

@@ -2,20 +2,23 @@
   "element_id": "fire",
   "display_name": "Fire Element",
   "attachment_type": "spellelemental:fire_element",
-  "trigger_conditions": {
+  "type": "damage_source",
+  "damage_source_conditions": {
     "damage_source_patterns": ["fire_magic", "*fire*"],
-    "spell_schools": ["fire"],
-    "required_tags": []
+    "minimum_damage": 0.0,
+    "maximum_damage": 999999.0,
+    "required_tags": [],
+    "excluded_tags": []
   },
   "effects": {
+    "element_value": 100,
     "duration": 200,
-    "stack_limit": 10,
-    "decay_rate": 1,
-    "network_sync": true
+    "sync_to_client": true
   },
   "visual": {
-    "icon": "spellelemental:textures/element/fire.png",
+    "particle_effect": "minecraft:flame",
+    "sound_effect": "minecraft:block.fire.ambient",
     "color": "#FF4500",
-    "particle_effect": "minecraft:flame"
+    "animation": "fire_attachment"
   }
 }

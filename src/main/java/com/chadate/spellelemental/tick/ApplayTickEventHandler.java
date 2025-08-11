@@ -2,8 +2,8 @@ package com.chadate.spellelemental.tick;
 
 import com.chadate.spellelemental.element.attachment.environment.ElementsEnvironment;
 import com.chadate.spellelemental.element.decay.ElementDecay;
-import com.chadate.spellelemental.element.reaction.custom.SpecialElementReactionHandler;
-import com.chadate.spellelemental.entity.CustomFreezeController;
+
+
 import com.chadate.spellelemental.event.tick.TickEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -18,7 +18,7 @@ public class ApplayTickEventHandler {
         ElementsEnvironment.applyWaterElementAttachment(entity);
         ElementDecay.processElements(entity, entityId);
 //        CustomFreezeController.CheckFreezeStatus(event);
-        SpecialElementReactionHandler.handleEntityTick(event);
+
         TickEvent.VulnerabilityTick(event);
         TickEvent.CheckDewSparkLayer(event);
         TickEvent.FreezeResistanceDecay(event);

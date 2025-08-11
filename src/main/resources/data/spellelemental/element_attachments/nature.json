@@ -2,20 +2,23 @@
   "element_id": "nature",
   "display_name": "Nature Element",
   "attachment_type": "spellelemental:nature_element",
-  "trigger_conditions": {
+  "type": "damage_source",
+  "damage_source_conditions": {
     "damage_source_patterns": ["nature_magic", "*nature*", "*earth*"],
-    "spell_schools": ["nature"],
-    "required_tags": []
+    "minimum_damage": 0.0,
+    "maximum_damage": 999999.0,
+    "required_tags": [],
+    "excluded_tags": []
   },
   "effects": {
+    "element_value": 100,
     "duration": 200,
-    "stack_limit": 10,
-    "decay_rate": 1,
-    "network_sync": true
+    "sync_to_client": true
   },
   "visual": {
-    "icon": "spellelemental:textures/element/nature.png",
+    "particle_effect": "minecraft:composter",
+    "sound_effect": "minecraft:block.grass.break",
     "color": "#228B22",
-    "particle_effect": "minecraft:composter"
+    "animation": "nature_attachment"
   }
 }
