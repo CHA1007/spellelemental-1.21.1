@@ -1,0 +1,21 @@
+{
+  "element_id": "ender",
+  "display_name": "Ender Element",
+  "attachment_type": "spellelemental:ender_element",
+  "trigger_conditions": {
+    "damage_source_patterns": ["ender_magic", "*ender*", "*void*"],
+    "spell_schools": ["ender"],
+    "required_tags": []
+  },
+  "effects": {
+    "duration": 200,
+    "stack_limit": 10,
+    "decay_rate": 1,
+    "network_sync": true
+  },
+  "visual": {
+    "icon": "spellelemental:textures/element/ender.png",
+    "color": "#800080",
+    "particle_effect": "minecraft:portal"
+  }
+}

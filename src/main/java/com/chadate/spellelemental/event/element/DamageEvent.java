@@ -21,10 +21,9 @@ public class DamageEvent {
         return source.getMsgId().contains("inFire");
     }
 
-    //检测伤害来源是否为实体
+    //检测伤害来源是否为生物实体
     public static boolean IsEntityDamage(LivingDamageEvent.Pre event) {
-        LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
-        return attacker != null;
+        return event.getSource().getEntity() instanceof LivingEntity;
     }
 
     public static void CancelSpellUnbeatableFrames(LivingEntity target) {

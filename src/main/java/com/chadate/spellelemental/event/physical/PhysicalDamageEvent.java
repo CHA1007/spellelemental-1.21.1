@@ -6,23 +6,31 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
-import java.util.Objects;
+
 
 public class PhysicalDamageEvent {
     public static void PhysicalDamage(LivingDamageEvent.Pre event) {
         LivingEntity target = event.getEntity();
-        LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
+        DamageSource source = event.getSource();
         double originalDamage = event.getNewDamage();
         double physicalBoost = 1;
-        DamageSource source = event.getSource();
 
         if (isPhysicalDamage(source)) {
-            if (attacker != null) {
-                physicalBoost = Objects.requireNonNull(attacker.getAttribute(ModAttributes.PHYSICAL_DAMAGE_BOOST)).getValue();
+            // 安全获取攻击者，只有当攻击者是生物实体时才获取物理伤害加成
+            if (source.getEntity() instanceof LivingEntity attacker) {
+                var physicalBoostAttr = attacker.getAttribute(ModAttributes.PHYSICAL_DAMAGE_BOOST);
+                if (physicalBoostAttr != null) {
+                    physicalBoost = physicalBoostAttr.getValue();
+                }
             }
-            double physicalResist = Objects.requireNonNull(target.getAttribute(ModAttributes.PHYSICAL_DAMAGE_RESIST)).getValue();
-            float finalDamage = (float) (originalDamage * physicalBoost * PhysicalResistMultiplier(physicalResist));
-            event.setNewDamage(finalDamage);
+            
+            // 安全获取目标的物理抗性
+            var physicalResistAttr = target.getAttribute(ModAttributes.PHYSICAL_DAMAGE_RESIST);
+            if (physicalResistAttr != null) {
+                double physicalResist = physicalResistAttr.getValue();
+                float finalDamage = (float) (originalDamage * physicalBoost * PhysicalResistMultiplier(physicalResist));
+                event.setNewDamage(finalDamage);
+            }
         }
     }
 

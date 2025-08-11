@@ -32,11 +32,13 @@ public class ReactionEventHandler {
 
     @SubscribeEvent
     public static void handleElementReactions(LivingDamageEvent.Pre event) {
-        LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
         LivingEntity target = event.getEntity();
         float astralBlessing = 0;
+        LivingEntity attacker = null;
 
-        if (attacker != null) {
+        // 安全获取攻击者，只有当攻击者是生物实体时才获取属性
+        if (event.getSource().getEntity() instanceof LivingEntity livingAttacker) {
+            attacker = livingAttacker;
             astralBlessing = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
         }
 

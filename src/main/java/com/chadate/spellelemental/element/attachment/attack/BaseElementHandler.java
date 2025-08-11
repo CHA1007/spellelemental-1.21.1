@@ -1,7 +1,7 @@
 package com.chadate.spellelemental.element.attachment.attack;
 
 import com.chadate.spellelemental.data.ElementsAttachment;
-import com.chadate.spellelemental.cilent.network.custom.ElementData;
+import com.chadate.spellelemental.client.network.custom.ElementData;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.attachment.AttachmentType;

@@ -1,0 +1,21 @@
+{
+  "element_id": "fire",
+  "display_name": "Fire Element",
+  "attachment_type": "spellelemental:fire_element",
+  "trigger_conditions": {
+    "damage_source_patterns": ["fire_magic", "*fire*"],
+    "spell_schools": ["fire"],
+    "required_tags": []
+  },
+  "effects": {
+    "duration": 200,
+    "stack_limit": 10,
+    "decay_rate": 1,
+    "network_sync": true
+  },
+  "visual": {
+    "icon": "spellelemental:textures/element/fire.png",
+    "color": "#FF4500",
+    "particle_effect": "minecraft:flame"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "element_id": "ice",
+  "display_name": "Ice Element",
+  "attachment_type": "spellelemental:ice_element",
+  "trigger_conditions": {
+    "damage_source_patterns": ["ice_magic", "*ice*"],
+    "spell_schools": ["ice"],
+    "required_tags": []
+  },
+  "effects": {
+    "duration": 200,
+    "stack_limit": 10,
+    "decay_rate": 1,
+    "network_sync": true
+  },
+  "visual": {
+    "icon": "spellelemental:textures/element/ice.png",
+    "color": "#87CEEB",
+    "particle_effect": "minecraft:snowflake"
+  }
+}

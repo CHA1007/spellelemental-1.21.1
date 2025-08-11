@@ -1,0 +1,21 @@
+{
+  "element_id": "lightning",
+  "display_name": "Lightning Element",
+  "attachment_type": "spellelemental:lightning_element",
+  "trigger_conditions": {
+    "damage_source_patterns": ["lightning_magic", "*lightning*", "*electric*"],
+    "spell_schools": ["lightning"],
+    "required_tags": []
+  },
+  "effects": {
+    "duration": 200,
+    "stack_limit": 10,
+    "decay_rate": 1,
+    "network_sync": true
+  },
+  "visual": {
+    "icon": "spellelemental:textures/element/lightning.png",
+    "color": "#FFD700",
+    "particle_effect": "minecraft:electric_spark"
+  }
+}

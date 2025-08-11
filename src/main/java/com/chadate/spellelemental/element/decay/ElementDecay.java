@@ -2,7 +2,7 @@ package com.chadate.spellelemental.element.decay;
 
 import com.chadate.spellelemental.data.ElementsAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.cilent.network.custom.ElementData;
+import com.chadate.spellelemental.client.network.custom.ElementData;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.attachment.AttachmentType;
