@@ -26,26 +26,27 @@ public class ModAttributes {
                     10000.0D
             ).setSyncable(true)
     );
-    public static final DeferredHolder<Attribute, Attribute> CRIT_RATE = ATTRIBUTES.register(
-            "crit_rate",
+
+    // 法术暴击属性（新增）
+    public static final DeferredHolder<Attribute, Attribute> SPELL_CRIT_RATE = ATTRIBUTES.register(
+            "spell_crit_rate",
             () -> new RangedAttribute(
-                "attribute.spellelemental.crit_rate",
+                "attribute.spellelemental.spell_crit_rate",
                 0.05D,
                 -10000.0D,
                 10000.0D
             ).setSyncable(true)
     );
 
-    public static final DeferredHolder<Attribute, Attribute> CRIT_DAMAGE = ATTRIBUTES.register(
-            "crit_damage",
+    public static final DeferredHolder<Attribute, Attribute> SPELL_CRIT_DAMAGE = ATTRIBUTES.register(
+            "spell_crit_damage",
             () -> new RangedAttribute(
-                "attribute.spellelemental.crit_damage",
+                "attribute.spellelemental.spell_crit_damage",
                 0.5D,
                 0.0D,
                 10000.0D
             ).setSyncable(true)
     );
-
     public static final DeferredHolder<Attribute, Attribute> PHYSICAL_DAMAGE_BOOST = ATTRIBUTES.register(
             "physical_damage_boost",
             () -> new RangedAttribute(

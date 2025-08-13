@@ -3,8 +3,6 @@ package com.chadate.spellelemental;
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.attachment.attack.ElementEventHandler;
-import com.chadate.spellelemental.event.element.ElementReactionEventHandler;
-
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +35,6 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, CritEventHandler::applyCritBonus);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, PhysicalEventHandler::applyPhysicalBonus);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, ElementEventHandler::handleElementAttachment);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, ElementReactionEventHandler::handleElementReactions);
-
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, ApplayTickEventHandler::onEntityTick);
 
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, DamageNumberRenderer::onRenderLevelStage);

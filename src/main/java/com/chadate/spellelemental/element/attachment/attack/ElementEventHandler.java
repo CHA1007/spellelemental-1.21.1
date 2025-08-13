@@ -1,7 +1,6 @@
 package com.chadate.spellelemental.element.attachment.attack;
 
 
-import com.chadate.spellelemental.element.reaction.custom.ElementReactionManager;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.bus.api.SubscribeEvent;
