@@ -6,40 +6,15 @@
   "environmental_conditions": {
     "water_conditions": {
       "in_water": true,
-      "in_rain": true,
-      "touching_water": true,
-      "underwater": false
-    },
-    "weather_conditions": {
-      "weather_types": ["rain", "thunderstorm"],
-      "thunder": false,
-      "rain": true
-    },
-    "biome_conditions": {
-      "biome_patterns": ["*ocean*", "*river*", "*swamp*"],
-      "biome_tags": ["minecraft:is_ocean", "minecraft:is_river"]
-    },
-    "block_conditions": {
-      "standing_on_blocks": [],
-      "surrounded_by_blocks": [],
-      "nearby_blocks": ["minecraft:water", "minecraft:ice", "minecraft:packed_ice", "minecraft:blue_ice"],
-      "check_radius": 2
-    },
-    "time_conditions": {
-      "time_range": null,
-      "moon_phases": []
-    },
-    "check_interval": 20
+      "in_rain": true
+    }
   },
   "effects": {
-    "element_value": 50,
-    "duration": 200,
-    "sync_to_client": true
+    "duration": 200
   },
   "visual": {
     "particle_effect": "minecraft:dripping_water",
     "sound_effect": "minecraft:ambient.underwater.enter",
-    "color": "#0077BE",
-    "animation": "water_attachment"
+    "icon": "spellelemental:textures/elements/water_element.png"
   }
 }

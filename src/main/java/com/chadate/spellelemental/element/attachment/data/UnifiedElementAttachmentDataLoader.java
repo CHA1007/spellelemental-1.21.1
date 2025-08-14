@@ -30,8 +30,10 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
     protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap, 
                         ResourceManager resourceManager, ProfilerFiller profilerFiller) {
         
-        // 清空现有的处理器
+        // 清空现有的处理器与图标映射
         ElementAttachmentRegistry.clearHandlers();
+        UnifiedElementAttachmentAssets.clear();
+        EnvironmentalAttachmentRegistry.clear();
         
         SpellElemental.LOGGER.info("开始加载统一元素附着配置...");
         
@@ -53,12 +55,18 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
                     continue;
                 }
                 
+                // 记录图标（如果提供）
+                if (config.getVisual() != null && config.getVisual().getIcon() != null) {
+                    UnifiedElementAttachmentAssets.setIcon(config.getAttachmentType(), config.getVisual().getIcon());
+                }
+                
                 // 根据类型分发到对应的处理器
                 if (config.isDamageSourceType()) {
                     registerDamageSourceHandler(config, resourceLocation);
                     damageSourceCount++;
                 } else if (config.isEnvironmentalType()) {
                     registerEnvironmentalHandler(config, resourceLocation);
+                    EnvironmentalAttachmentRegistry.add(config);
                     environmentalCount++;
                 } else {
                     SpellElemental.LOGGER.error("未知的附着类型: {} in {}", config.getType(), resourceLocation);
@@ -134,12 +142,7 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
      */
     private void registerDamageSourceHandler(UnifiedElementAttachmentConfig config, ResourceLocation resourceLocation) {
         try {
-            // 创建兼容的配置对象
-            com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig legacyConfig = 
-                convertToLegacyConfig(config);
-            
-            DynamicElementHandler handler = new DynamicElementHandler(legacyConfig);
-            
+            DynamicElementHandler handler = new DynamicElementHandler(config);
             ElementAttachmentRegistry.register(handler);
             
             SpellElemental.LOGGER.debug("注册伤害源元素附着处理器: {} -> {}", 
@@ -164,55 +167,5 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
         } catch (Exception e) {
             SpellElemental.LOGGER.error("加载环境附着配置失败: {} - {}", resourceLocation, e.getMessage(), e);
         }
-    }
-    
-    /**
-     * 将统一配置转换为旧版配置格式
-     * 用于兼容现有的 DynamicElementHandler
-     */
-    private com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig convertToLegacyConfig(
-            UnifiedElementAttachmentConfig unifiedConfig) {
-        
-        com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig legacyConfig = 
-            new com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig();
-        
-        legacyConfig.setElementId(unifiedConfig.getElementId());
-        legacyConfig.setDisplayName(unifiedConfig.getDisplayName());
-        legacyConfig.setAttachmentType(unifiedConfig.getAttachmentType());
-        
-        // 转换触发条件
-        if (unifiedConfig.getDamageSourceConditions() != null) {
-            com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig.TriggerConditions triggerConditions = 
-                new com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig.TriggerConditions();
-            
-            triggerConditions.setDamageSourcePatterns(unifiedConfig.getDamageSourceConditions().getDamageSourcePatterns());
-            triggerConditions.setRequiredTags(unifiedConfig.getDamageSourceConditions().getRequiredTags());
-            
-            legacyConfig.setTriggerConditions(triggerConditions);
-        }
-        
-        // 转换效果配置
-        if (unifiedConfig.getEffects() != null) {
-            com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig.EffectProperties effects = 
-                new com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig.EffectProperties();
-            
-            effects.setDuration(unifiedConfig.getEffects().getDuration());
-            effects.setNetworkSync(unifiedConfig.getEffects().isSyncToClient());
-            
-            legacyConfig.setEffects(effects);
-        }
-        
-        // 转换视觉效果配置
-        if (unifiedConfig.getVisual() != null) {
-            com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig.VisualProperties visual = 
-                new com.chadate.spellelemental.element.attachment.config.ElementAttachmentConfig.VisualProperties();
-            
-            visual.setColor(unifiedConfig.getVisual().getColor());
-            visual.setParticleEffect(unifiedConfig.getVisual().getParticleEffect());
-            
-            legacyConfig.setVisual(visual);
-        }
-        
-        return legacyConfig;
     }
 }

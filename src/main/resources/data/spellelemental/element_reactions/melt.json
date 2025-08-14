@@ -1,0 +1,44 @@
+{
+  "reaction_id": "melt",
+  "reaction_name": "融化反应",
+  "description": "冰元素与火元素相遇时产生的融化反应，造成额外伤害并移除冰元素状态",
+  "priority": 100,
+  "variants": [
+    {
+      "element_conditions": {
+        "primary_element": "ice_element",
+        "secondary_element": "fire_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 200,
+        "secondary_consumption": 100
+      },
+      "damage_effects": {
+        "reaction_type": "amplified_reaction",
+        "damage_multiplier": 1.5
+      },
+      "reaction_conditions": {
+        "minimum_primary_amount": 1,
+        "minimum_secondary_amount": 1
+      }
+    },
+    {
+      "element_conditions": {
+        "primary_element": "fire_element",
+        "secondary_element": "ice_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 200,
+        "secondary_consumption": 200
+      },
+      "damage_effects": {
+        "reaction_type": "amplified_reaction",
+        "damage_multiplier": 2
+      },
+      "reaction_conditions": {
+        "minimum_primary_amount": 1,
+        "minimum_secondary_amount": 1
+      }
+    }
+  ]
+} 

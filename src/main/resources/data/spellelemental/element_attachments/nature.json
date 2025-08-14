@@ -4,21 +4,14 @@
   "attachment_type": "spellelemental:nature_element",
   "type": "damage_source",
   "damage_source_conditions": {
-    "damage_source_patterns": ["nature_magic", "*nature*", "*earth*"],
-    "minimum_damage": 0.0,
-    "maximum_damage": 999999.0,
-    "required_tags": [],
-    "excluded_tags": []
+    "damage_source_patterns": ["nature_magic"]
   },
   "effects": {
-    "element_value": 100,
-    "duration": 200,
-    "sync_to_client": true
+    "duration": 200
   },
   "visual": {
     "particle_effect": "minecraft:composter",
     "sound_effect": "minecraft:block.grass.break",
-    "color": "#228B22",
-    "animation": "nature_attachment"
+    "icon": "spellelemental:textures/elements/nature_element.png"
   }
 }

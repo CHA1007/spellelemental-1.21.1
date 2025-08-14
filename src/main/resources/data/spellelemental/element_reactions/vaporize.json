@@ -1,0 +1,36 @@
+{
+  "reaction_id": "vaporize",
+  "reaction_name": "蒸发反应",
+  "description": "火元素与水元素相遇时产生的蒸发反应，增幅本次伤害",
+  "priority": 100,
+  "variants": [
+    {
+      "element_conditions": {
+        "primary_element": "fire_element",
+        "secondary_element": "water_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 200,
+        "secondary_consumption": 100
+      },
+      "damage_effects": {
+        "reaction_type": "amplified_reaction",
+        "damage_multiplier": 1.5
+      }
+    },
+    {
+      "element_conditions": {
+        "primary_element": "water_element",
+        "secondary_element": "fire_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 200,
+        "secondary_consumption": 200
+      },
+      "damage_effects": {
+        "reaction_type": "amplified_reaction",
+        "damage_multiplier": 2.0
+      }
+    }
+  ]
+} 

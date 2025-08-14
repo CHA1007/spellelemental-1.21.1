@@ -131,63 +131,18 @@ public class UnifiedElementAttachmentConfig {
     }
     
     /**
-     * 基于伤害源的触发条件
+     * 基于伤害源的触发条件（已简化）
      */
     public static class DamageSourceConditions {
         @SerializedName("damage_source_patterns")
         private List<String> damageSourcePatterns;
         
-        @SerializedName("minimum_damage")
-        private double minimumDamage = 0.0;
-        
-        @SerializedName("maximum_damage")
-        private double maximumDamage = Double.MAX_VALUE;
-        
-        @SerializedName("required_tags")
-        private List<String> requiredTags;
-        
-        @SerializedName("excluded_tags")
-        private List<String> excludedTags;
-        
-        // Getters and Setters
         public List<String> getDamageSourcePatterns() {
             return damageSourcePatterns;
         }
         
         public void setDamageSourcePatterns(List<String> damageSourcePatterns) {
             this.damageSourcePatterns = damageSourcePatterns;
-        }
-        
-        public double getMinimumDamage() {
-            return minimumDamage;
-        }
-        
-        public void setMinimumDamage(double minimumDamage) {
-            this.minimumDamage = minimumDamage;
-        }
-        
-        public double getMaximumDamage() {
-            return maximumDamage;
-        }
-        
-        public void setMaximumDamage(double maximumDamage) {
-            this.maximumDamage = maximumDamage;
-        }
-        
-        public List<String> getRequiredTags() {
-            return requiredTags;
-        }
-        
-        public void setRequiredTags(List<String> requiredTags) {
-            this.requiredTags = requiredTags;
-        }
-        
-        public List<String> getExcludedTags() {
-            return excludedTags;
-        }
-        
-        public void setExcludedTags(List<String> excludedTags) {
-            this.excludedTags = excludedTags;
         }
     }
     
@@ -484,26 +439,11 @@ public class UnifiedElementAttachmentConfig {
     }
     
     /**
-     * 效果配置
+     * 效果配置（已简化）
      */
     public static class EffectConfig {
-        @SerializedName("element_value")
-        private int elementValue;
-        
         @SerializedName("duration")
         private int duration;
-        
-        @SerializedName("sync_to_client")
-        private boolean syncToClient = true;
-        
-        // Getters and Setters
-        public int getElementValue() {
-            return elementValue;
-        }
-        
-        public void setElementValue(int elementValue) {
-            this.elementValue = elementValue;
-        }
         
         public int getDuration() {
             return duration;
@@ -512,18 +452,10 @@ public class UnifiedElementAttachmentConfig {
         public void setDuration(int duration) {
             this.duration = duration;
         }
-        
-        public boolean isSyncToClient() {
-            return syncToClient;
-        }
-        
-        public void setSyncToClient(boolean syncToClient) {
-            this.syncToClient = syncToClient;
-        }
     }
     
     /**
-     * 视觉效果配置
+     * 视觉效果配置（已简化）
      */
     public static class VisualConfig {
         @SerializedName("particle_effect")
@@ -532,13 +464,9 @@ public class UnifiedElementAttachmentConfig {
         @SerializedName("sound_effect")
         private String soundEffect;
         
-        @SerializedName("color")
-        private String color;
+        @SerializedName("icon")
+        private String icon;
         
-        @SerializedName("animation")
-        private String animation;
-        
-        // Getters and Setters
         public String getParticleEffect() {
             return particleEffect;
         }
@@ -555,20 +483,12 @@ public class UnifiedElementAttachmentConfig {
             this.soundEffect = soundEffect;
         }
         
-        public String getColor() {
-            return color;
+        public String getIcon() {
+            return icon;
         }
         
-        public void setColor(String color) {
-            this.color = color;
-        }
-        
-        public String getAnimation() {
-            return animation;
-        }
-        
-        public void setAnimation(String animation) {
-            this.animation = animation;
+        public void setIcon(String icon) {
+            this.icon = icon;
         }
     }
 }

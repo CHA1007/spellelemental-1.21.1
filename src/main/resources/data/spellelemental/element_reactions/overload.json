@@ -1,0 +1,42 @@
+{
+  "reaction_id": "overload",
+  "reaction_name": "超载反应",
+  "description": "火与雷相遇产生的超载反应，造成范围聚变伤害",
+  "priority": 100,
+  "variants": [
+    {
+      "element_conditions": {
+        "primary_element": "fire_element",
+        "secondary_element": "lightning_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 200,
+        "secondary_consumption": 200
+      },
+      "damage_effects": {
+        "reaction_type": "overload_reaction",
+        "damage_multiplier": 1.6,
+        "area_radius": 3.5,
+        "include_self": false,
+        "damage_source": "fire"
+      }
+    },
+    {
+      "element_conditions": {
+        "primary_element": "lightning_element",
+        "secondary_element": "fire_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 200,
+        "secondary_consumption": 200
+      },
+      "damage_effects": {
+        "reaction_type": "overload_reaction",
+        "damage_multiplier": 1.6,
+        "area_radius": 3.5,
+        "include_self": false,
+        "damage_source": "fire"
+      }
+    }
+  ]
+} 

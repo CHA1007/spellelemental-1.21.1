@@ -4,21 +4,14 @@
   "attachment_type": "spellelemental:lightning_element",
   "type": "damage_source",
   "damage_source_conditions": {
-    "damage_source_patterns": ["lightning_magic", "*lightning*", "*electric*"],
-    "minimum_damage": 0.0,
-    "maximum_damage": 999999.0,
-    "required_tags": [],
-    "excluded_tags": []
+    "damage_source_patterns": ["lightning_magic"]
   },
   "effects": {
-    "element_value": 100,
-    "duration": 200,
-    "sync_to_client": true
+    "duration": 200
   },
   "visual": {
     "particle_effect": "minecraft:electric_spark",
     "sound_effect": "minecraft:entity.lightning_bolt.thunder",
-    "color": "#FFD700",
-    "animation": "lightning_attachment"
+    "icon": "spellelemental:textures/elements/lightning_element.png"
   }
 }

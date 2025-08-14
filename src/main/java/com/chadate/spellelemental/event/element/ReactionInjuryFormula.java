@@ -9,7 +9,7 @@ public class ReactionInjuryFormula {
         return attackDamage * reactionMultiplier * (1 + (16 * astralBlessing) / (astralBlessing + 2000));
     }
 
-    public static float CalculateBlessingBonus(float astralBlessing) {
+    public static float AmplifiedReactionBonus(float astralBlessing) {
         return (float) (1 + ((2.78 * astralBlessing) / (astralBlessing + 1400)));
     }
 }

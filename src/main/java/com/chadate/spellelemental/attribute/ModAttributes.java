@@ -27,7 +27,6 @@ public class ModAttributes {
             ).setSyncable(true)
     );
 
-    // 法术暴击属性（新增）
     public static final DeferredHolder<Attribute, Attribute> SPELL_CRIT_RATE = ATTRIBUTES.register(
             "spell_crit_rate",
             () -> new RangedAttribute(
