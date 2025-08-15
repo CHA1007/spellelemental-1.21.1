@@ -9,7 +9,11 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public class ReactionEvent {
 	private static String toContainerKey(String base) {
 		if (base == null) return "";
-		return base.toLowerCase() + "_element";
+		// 与 DynamicElementHandler.extractElementKey() 保持一致的逻辑
+		String s = base.contains(":") ? 
+			base.substring(base.indexOf(":") + 1) : 
+			base;
+		return s.toLowerCase();
 	}
 
 	public static void setElementAttachment(LivingEntity entity, String element, int value) {

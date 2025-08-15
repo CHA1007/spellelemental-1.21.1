@@ -184,14 +184,8 @@ public class ElementReactionConfig {
      * 反应效果配置
      */
     public static class ReactionEffects {
-        @SerializedName("damage_type")
-        private String damageType;
-        
-        @SerializedName("area_damage")
-        private boolean areaDamage;
-        
-        @SerializedName("area_radius")
-        private float areaRadius;
+        @SerializedName("reaction_effects")
+        private List<ReactionEffect> reactionEffects;
         
         @SerializedName("status_effects")
         private List<StatusEffect> statusEffects;
@@ -202,35 +196,13 @@ public class ElementReactionConfig {
         @SerializedName("cooldown")
         private int cooldown;
         
-        @SerializedName("include_self")
-        private boolean includeSelf;
-        
-        @SerializedName("damage_source")
-        private String damageSource;
-        
         // Getters and Setters
-        public String getDamageType() {
-            return damageType;
+        public List<ReactionEffect> getReactionEffects() {
+            return reactionEffects;
         }
         
-        public void setDamageType(String damageType) {
-            this.damageType = damageType;
-        }
-        
-        public boolean isAreaDamage() {
-            return areaDamage;
-        }
-        
-        public void setAreaDamage(boolean areaDamage) {
-            this.areaDamage = areaDamage;
-        }
-        
-        public float getAreaRadius() {
-            return areaRadius;
-        }
-        
-        public void setAreaRadius(float areaRadius) {
-            this.areaRadius = areaRadius;
+        public void setReactionEffects(List<ReactionEffect> reactionEffects) {
+            this.reactionEffects = reactionEffects;
         }
         
         public List<StatusEffect> getStatusEffects() {
@@ -257,6 +229,101 @@ public class ElementReactionConfig {
             this.cooldown = cooldown;
         }
         
+        /**
+         * 获取所有效果类型
+         */
+        public List<String> getAllEffectTypes() {
+            List<String> types = new java.util.ArrayList<>();
+            
+            if (reactionEffects != null) {
+                for (ReactionEffect effect : reactionEffects) {
+                    if (effect.getEffectType() != null && !effect.getEffectType().isEmpty()) {
+                        types.add(effect.getEffectType());
+                    }
+                }
+            }
+            
+            return types;
+        }
+        
+        /**
+         * 检查是否有配置效果
+         */
+        public boolean hasEffects() {
+            return reactionEffects != null && !reactionEffects.isEmpty();
+        }
+        
+        /**
+         * 获取主要效果类型
+         */
+        public String getPrimaryEffectType() {
+            if (hasEffects()) {
+                return reactionEffects.get(0).getEffectType();
+            }
+            return null;
+        }
+        
+        /**
+         * 获取主要伤害倍率
+         */
+        public float getPrimaryDamageMultiplier() {
+            if (hasEffects()) {
+                return reactionEffects.get(0).getDamageMultiplier();
+            }
+            return 1.0f;
+        }
+    }
+    
+    /**
+     * 单个反应效果配置
+     */
+    public static class ReactionEffect {
+        @SerializedName("effect_type")
+        private String effectType;
+        
+        @SerializedName("damage_multiplier")
+        private float damageMultiplier = 1.0f;
+        
+        @SerializedName("area_radius")
+        private float areaRadius = 0.0f;
+        
+        @SerializedName("include_self")
+        private boolean includeSelf = false;
+        
+        @SerializedName("damage_source")
+        private String damageSource;
+        
+        @SerializedName("priority")
+        private int priority = 0;
+        
+        @SerializedName("conditions")
+        private EffectConditions conditions;
+        
+        // Getters and Setters
+        public String getEffectType() {
+            return effectType;
+        }
+        
+        public void setEffectType(String effectType) {
+            this.effectType = effectType;
+        }
+        
+        public float getDamageMultiplier() {
+            return damageMultiplier;
+        }
+        
+        public void setDamageMultiplier(float damageMultiplier) {
+            this.damageMultiplier = damageMultiplier;
+        }
+        
+        public float getAreaRadius() {
+            return areaRadius;
+        }
+        
+        public void setAreaRadius(float areaRadius) {
+            this.areaRadius = areaRadius;
+        }
+        
         public boolean isIncludeSelf() {
             return includeSelf;
         }
@@ -271,6 +338,72 @@ public class ElementReactionConfig {
         
         public void setDamageSource(String damageSource) {
             this.damageSource = damageSource;
+        }
+        
+        public int getPriority() {
+            return priority;
+        }
+        
+        public void setPriority(int priority) {
+            this.priority = priority;
+        }
+        
+        public EffectConditions getConditions() {
+            return conditions;
+        }
+        
+        public void setConditions(EffectConditions conditions) {
+            this.conditions = conditions;
+        }
+    }
+    
+    /**
+     * 效果触发条件
+     */
+    public static class EffectConditions {
+        @SerializedName("minimum_damage")
+        private float minimumDamage = 0.0f;
+        
+        @SerializedName("maximum_damage")
+        private float maximumDamage = Float.MAX_VALUE;
+        
+        @SerializedName("required_elements")
+        private List<String> requiredElements;
+        
+        @SerializedName("excluded_elements")
+        private List<String> excludedElements;
+        
+        // Getters and Setters
+        public float getMinimumDamage() {
+            return minimumDamage;
+        }
+        
+        public void setMinimumDamage(float minimumDamage) {
+            this.minimumDamage = minimumDamage;
+        }
+        
+        public float getMaximumDamage() {
+            return maximumDamage;
+        }
+        
+        public void setMaximumDamage(float maximumDamage) {
+            this.maximumDamage = maximumDamage;
+        }
+        
+        public List<String> getRequiredElements() {
+            return requiredElements;
+        }
+        
+        public void setRequiredElements(List<String> requiredElements) {
+            this.requiredElements = requiredElements;
+        }
+        
+        public List<String> getExcludedElements() {
+            return excludedElements;
+        }
+        
+        public void setExcludedElements(List<String> excludedElements) {
+            this.excludedElements = excludedElements;
         }
     }
     

@@ -1,7 +1,7 @@
 {
   "element_id": "fire",
   "display_name": "Fire Element",
-  "attachment_type": "spellelemental:fire_element",
+  "attachment_type": "fire_element",
   "type": "damage_source",
   "damage_source_conditions": {
     "damage_source_patterns": ["fire_magic"]

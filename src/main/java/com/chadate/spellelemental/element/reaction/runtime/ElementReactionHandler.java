@@ -25,7 +25,7 @@ import java.util.List;
 public class ElementReactionHandler {
 	
 	/**
-	 * 新：对当前事件伤害进行增幅，不产生额外伤害
+	 * 对当前事件伤害进行增幅，不产生额外伤害
 	 */
 	public static boolean tryAmplifyAnyReaction(LivingDamageEvent.Pre event) {
 		LivingEntity target = event.getEntity();
@@ -55,37 +55,6 @@ public class ElementReactionHandler {
 		return false;
 	}
 	
-	/**
-	 * 旧：遍历并触发（保留，但不再额外调用）
-	 */
-	public static boolean tryTriggerAnyReaction(LivingEntity target, float baseDamage) {
-		// 优先按“最近附着的元素”确定方向
-		String latest = ElementAttachmentRegistry.getLatestAppliedElement();
-		if (latest != null && !latest.isEmpty()) {
-			// latest 是 element_id（如 fire、ice），与反应侧配置的 primary/secondary 可能是 *_element 或带命名空间，因此让检查函数自行归一化
-			// 优先尝试：latest -> other（other 由容器中现存的另一个元素作为 secondary）
-			// 简化策略：遍历已加载的反应列表，挑出 primary=latest 的，逐个检查
-			for (ElementReactionConfig cfg : ElementReactionDataLoader.getAllReactionsSortedByPriority()) {
-				String cfgPrimary = cfg.getPrimaryElement();
-				String cfgSecondary = cfg.getSecondaryElement();
-				// 若primary匹配latest，则检查触发
-				if (normalizeToBase(cfgPrimary).equals(normalizeToBase(latest))) {
-					if (checkAndTriggerReaction(target, cfgPrimary, cfgSecondary, baseDamage)) {
-						return true;
-					}
-				}
-			}
-		}
-
-		// 回退：按优先级遍历
-		for (ElementReactionConfig cfg : ElementReactionDataLoader.getAllReactionsSortedByPriority()) {
-			if (checkAndTriggerReaction(target, cfg.getPrimaryElement(), cfg.getSecondaryElement(), baseDamage)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
 	private static boolean checkAndTriggerAmplify(LivingEntity attacker, LivingEntity target, LivingDamageEvent.Pre event, String primaryElement, String secondaryElement, float baseDamage) {
 		ElementReactionConfig reactionConfig = ElementReactionDataLoader.getReactionByElements(primaryElement, secondaryElement);
 		if (reactionConfig == null) return false;
@@ -95,42 +64,9 @@ public class ElementReactionHandler {
 		return true;
 	}
 	
-	/**
-	 * 检查并触发元素反应（默认基础伤害为 1.0f）
-	 */
-	public static boolean checkAndTriggerReaction(LivingEntity target, String primaryElement, String secondaryElement) {
-		return checkAndTriggerReaction(target, primaryElement, secondaryElement, 1.0f);
-	}
 
-	/**
-	 * 检查并触发元素反应（传入基础伤害）
-	 * @param target 目标实体
-	 * @param primaryElement 主导元素（可为 fire、fire_element 或 spellelemental:fire_element）
-	 * @param secondaryElement 被反应元素（同上）
-	 * @param baseDamage 本次事件的基础伤害（来自事件）
-	 * @return 是否成功触发反应
-	 */
-	public static boolean checkAndTriggerReaction(LivingEntity target, String primaryElement, String secondaryElement, float baseDamage) {
-		// 获取反应配置（保持与配置一致的 *_element 风格作为键）
-		ElementReactionConfig reactionConfig = ElementReactionDataLoader.getReactionByElements(primaryElement, secondaryElement);
-		
-		if (reactionConfig == null) {
-			return false;
-		}
-		
-		// 检查触发条件
-		if (!canTriggerReaction(target, reactionConfig)) {
-			return false;
-		}
-		
-		// 执行反应（旧：造成额外伤害）
-		executeReaction(target, reactionConfig, baseDamage);
-		
-		SpellElemental.LOGGER.debug("触发元素反应: {} 在实体 {} 上", 
-			reactionConfig.getReactionName(), target.getName().getString());
-		
-		return true;
-	}
+
+
 
 	/**
 	 * 消耗元素
@@ -155,7 +91,7 @@ public class ElementReactionHandler {
 	}
 	
 	/**
-	 * 将元素ID（可能为 *_element 或 带命名空间）归一化为基础关键字（fire、ice、water 等）
+	 * 将元素ID（可能带命名空间）归一化为存储键名（与附着存储保持一致）
 	 */
 	private static String normalizeToBase(String elementId) {
 		if (elementId == null) return "";
@@ -164,9 +100,7 @@ public class ElementReactionHandler {
 		if (idx >= 0) {
 			s = s.substring(idx + 1);
 		}
-		if (s.endsWith("_element")) {
-			s = s.substring(0, s.length() - "_element".length());
-		}
+		// 不再移除 "_element" 后缀，保持与附着存储的键名一致
 		return s;
 	}
 
@@ -202,31 +136,7 @@ public class ElementReactionHandler {
 		return true;
 	}
 	
-	/**
-	 * 计算反应最终伤害（不直接造成伤害）
-	 */
-	private static float calculateFinalDamage(LivingEntity attacker, LivingEntity target, ElementReactionConfig config, float baseDamage) {
-		float finalDamage;
-		String type = config.getEffects() != null ? config.getEffects().getDamageType() : "";
-		float mult = config.getDamageMultiplier() <= 0 ? 1.0f : config.getDamageMultiplier();
-		float astral = 0f;
-		try {
-			if (attacker != null) {
-				astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
-			}
-		} catch (Exception ignored) {}
-		switch (type) {
-			case "amplified_reaction":
-				finalDamage = baseDamage * mult * ReactionInjuryFormula.AmplifiedReactionBonus(astral);
-				break;
-			case "overload_reaction":
-				finalDamage = ReactionInjuryFormula.CalculateOverloadDamage(baseDamage, mult, astral);
-				break;
-			default:
-				finalDamage = baseDamage * mult;
-		}
-		return finalDamage;
-	}
+
 	
 	/**
 	 * 根据字符串选择范围伤害的DamageSource
@@ -252,32 +162,23 @@ public class ElementReactionHandler {
 	 * 执行元素反应（增幅当前事件伤害）
 	 */
 	private static void executeAmplify(LivingEntity attacker, LivingEntity target, LivingDamageEvent.Pre event, ElementReactionConfig config, float baseDamage) {
+		SpellElemental.LOGGER.info("=== 元素反应触发 ===");
+		SpellElemental.LOGGER.info("反应名称: {}", config.getReactionName());
+		SpellElemental.LOGGER.info("反应ID: {}", config.getReactionId());
+		SpellElemental.LOGGER.info("反应优先级: {}", config.getPriority());
+		SpellElemental.LOGGER.info("攻击者: {}", attacker != null ? attacker.getName().getString() : "无");
+		SpellElemental.LOGGER.info("目标实体: {}", target.getName().getString());
+		SpellElemental.LOGGER.info("基础伤害: {}", baseDamage);
+		
 		// 消耗元素
 		consumeElements(target, config);
 		
-		String type = config.getEffects() != null ? config.getEffects().getDamageType() : "";
-		float computed = calculateFinalDamage(attacker, target, config, baseDamage);
-		String areaDamageTypeKey = config.getEffects() != null ? config.getEffects().getDamageSource() : null;
-		
-		if ("overload_reaction".equals(type)) {
-			// 聚变（超载）：按照公式对范围内单位造成一次伤害；不修改当前事件伤害
-			float radius = 3.0f;
-			boolean includeSelf = false;
-			if (config.getEffects() != null) {
-				if (config.getEffects().getAreaRadius() > 0) {
-					radius = config.getEffects().getAreaRadius();
-				}
-				includeSelf = config.getEffects().isIncludeSelf();
-			}
-			applyAreaDamageWithSelfOption(attacker, target, computed, radius, includeSelf, areaDamageTypeKey);
-		} else if (config.getEffects() != null && config.getEffects().isAreaDamage()) {
-			// 旧配置：显式area_damage为true时，范围伤害
-			float radius = config.getEffects().getAreaRadius();
-			if (radius <= 0) radius = 3.0f;
-			applyAreaDamageWithSelfOption(attacker, target, computed, radius, false, areaDamageTypeKey);
+		// 执行效果处理
+		if (config.getEffects() != null && config.getEffects().hasEffects()) {
+			SpellElemental.LOGGER.info("发现效果配置，效果数量: {}", config.getEffects().getReactionEffects().size());
+			executeEffects(attacker, target, event, config.getEffects().getReactionEffects(), baseDamage);
 		} else {
-			// 默认：增幅当前事件伤害
-			event.setNewDamage(computed);
+			SpellElemental.LOGGER.warn("未发现效果配置或效果为空，反应可能无法正常工作");
 		}
 		
 		// 播放视觉/音效/粒子
@@ -287,60 +188,196 @@ public class ElementReactionHandler {
 	}
 	
 	/**
-	 * 执行元素反应（旧：产生独立的额外伤害）
+	 * 执行效果列表
 	 */
-	private static void executeReaction(LivingEntity target, ElementReactionConfig config, float baseDamage) {
-		// 消耗元素
-		consumeElements(target, config);
+	private static void executeEffects(LivingEntity attacker, LivingEntity target, LivingDamageEvent.Pre event, List<ElementReactionConfig.ReactionEffect> effects, float baseDamage) {
+		if (effects.isEmpty()) {
+			return;
+		}
 		
-		// 应用反应效果 → 旧逻辑：额外伤害
-		applyReactionEffects(target, config, baseDamage);
+		// 按优先级排序效果
+		effects.sort((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
 		
-		// 播放视觉效果
-		playVisualEffects(target, config);
+		float currentDamage = baseDamage;
+		boolean damageModified = false;
+		float originalDamage = baseDamage;
 		
-		// 播放音效
-		playSoundEffects(target, config);
+		SpellElemental.LOGGER.info("=== 元素反应伤害计算开始 ===");
+		SpellElemental.LOGGER.info("目标实体: {}", target.getName().getString());
+		SpellElemental.LOGGER.info("原始伤害: {}", originalDamage);
+		SpellElemental.LOGGER.info("效果数量: {}", effects.size());
 		
-		// 生成粒子效果
-		spawnParticleEffects(target, config);
+		for (ElementReactionConfig.ReactionEffect effect : effects) {
+			// 检查效果条件
+			if (!checkEffectConditions(attacker, target, effect, currentDamage)) {
+				SpellElemental.LOGGER.debug("效果条件不满足，跳过效果: {}", effect.getEffectType());
+				continue;
+			}
+			
+			String effectType = effect.getEffectType();
+			float effectDamage = calculateDamage(attacker, target, effect, currentDamage);
+			float effectMultiplier = effect.getDamageMultiplier();
+			
+			SpellElemental.LOGGER.debug("执行效果: {}, 当前伤害: {}, 计算后伤害: {}", effectType, currentDamage, effectDamage);
+			
+			if ("amplified_reaction".equals(effectType)) {
+				// 增幅效果：修改当前事件伤害
+				float previousDamage = currentDamage;
+				currentDamage = effectDamage;
+				damageModified = true;
+				
+				// 获取星耀祝福数值
+				float astral = 0f;
+				try {
+					if (attacker != null) {
+						astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+					}
+				} catch (Exception ignored) {}
+				
+				SpellElemental.LOGGER.info("=== 增幅反应触发 ===");
+				SpellElemental.LOGGER.info("反应类型: {}", effectType);
+				SpellElemental.LOGGER.info("反应倍率: {}", effectMultiplier);
+				SpellElemental.LOGGER.info("星耀祝福: {}", astral);
+				SpellElemental.LOGGER.info("增幅前伤害: {}", previousDamage);
+				SpellElemental.LOGGER.info("增幅后伤害: {}", currentDamage);
+				SpellElemental.LOGGER.info("伤害增幅: {} -> {} (增加 {})", previousDamage, currentDamage, currentDamage - previousDamage);
+			} else if ("overload_reaction".equals(effectType) || "area_damage".equals(effectType)) {
+				// 聚变/范围效果：造成范围伤害，不修改当前事件伤害
+				float radius = effect.getAreaRadius() > 0 ? effect.getAreaRadius() : 3.0f;
+				boolean includeSelf = effect.isIncludeSelf();
+				String damageSource = effect.getDamageSource();
+				
+				// 获取星耀祝福数值
+				float astral = 0f;
+				try {
+					if (attacker != null) {
+						astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+	}
+				} catch (Exception ignored) {}
+				
+				SpellElemental.LOGGER.info("=== 范围伤害反应触发 ===");
+				SpellElemental.LOGGER.info("反应类型: {}", effectType);
+				SpellElemental.LOGGER.info("反应倍率: {}", effectMultiplier);
+				SpellElemental.LOGGER.info("星耀祝福: {}", astral);
+				SpellElemental.LOGGER.info("范围伤害: {} (半径: {})", effectDamage, radius);
+				
+				applyAreaDamageWithSelfOption(attacker, target, effectDamage, radius, includeSelf, damageSource);
+			} else {
+				// 默认：直接伤害目标
+				DamageSource ds = resolveAreaDamageSource(attacker, target, effect.getDamageSource());
+				
+				SpellElemental.LOGGER.info("=== 直接伤害反应触发 ===");
+				SpellElemental.LOGGER.info("反应类型: {}", effectType);
+				SpellElemental.LOGGER.info("反应倍率: {}", effectMultiplier);
+				SpellElemental.LOGGER.info("直接伤害: {}", effectDamage);
+				
+				target.hurt(ds, effectDamage);
+			}
+		}
+		
+		// 如果有增幅效果，更新事件伤害
+		if (damageModified) {
+			SpellElemental.LOGGER.info("=== 最终伤害更新 ===");
+			SpellElemental.LOGGER.info("原始伤害: {}", originalDamage);
+			SpellElemental.LOGGER.info("最终伤害: {}", currentDamage);
+			SpellElemental.LOGGER.info("总伤害增幅: {} -> {} (增加 {})", originalDamage, currentDamage, currentDamage - originalDamage);
+			SpellElemental.LOGGER.info("=== 元素反应伤害计算结束 ===");
+			
+			event.setNewDamage(currentDamage);
+		} else {
+			SpellElemental.LOGGER.info("=== 元素反应伤害计算结束 ===");
+			SpellElemental.LOGGER.info("无伤害增幅，保持原始伤害: {}", originalDamage);
+		}
 	}
 	
 	/**
-	 * 应用反应效果（旧：造成额外伤害）
+	 * 计算伤害
 	 */
-	private static void applyReactionEffects(LivingEntity target, ElementReactionConfig config, float baseDamage) {
-		float finalDamage;
-		String type = config.getEffects() != null ? config.getEffects().getDamageType() : "";
-		float mult = config.getDamageMultiplier() <= 0 ? 1.0f : config.getDamageMultiplier();
+	private static float calculateDamage(LivingEntity attacker, LivingEntity target, ElementReactionConfig.ReactionEffect effect, float baseDamage) {
+		String effectType = effect.getEffectType();
+		float mult = effect.getDamageMultiplier() <= 0 ? 1.0f : effect.getDamageMultiplier();
 		float astral = 0f;
+		
 		try {
-			astral = (float) target.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+			if (attacker != null) {
+				astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+			}
 		} catch (Exception ignored) {}
-		// 这里示例按 reaction_type 选择公式，可继续扩展映射
-		switch (type) {
+		
+		float finalDamage;
+		switch (effectType) {
 			case "amplified_reaction":
-				finalDamage = baseDamage * mult * ReactionInjuryFormula.AmplifiedReactionBonus(astral);
-				break;
+				float bonus = ReactionInjuryFormula.AmplifiedReactionBonus(astral);
+				finalDamage = baseDamage * mult * bonus;
+				SpellElemental.LOGGER.debug("增幅反应详细计算:");
+				SpellElemental.LOGGER.debug("  基础伤害: {}", baseDamage);
+				SpellElemental.LOGGER.debug("  反应倍率: {}", mult);
+				SpellElemental.LOGGER.debug("  星耀祝福: {}", astral);
+				SpellElemental.LOGGER.debug("  星耀加成: {}", bonus);
+				SpellElemental.LOGGER.debug("  最终伤害: {} * {} * {} = {}", baseDamage, mult, bonus, finalDamage);
+				return finalDamage;
 			case "overload_reaction":
 				finalDamage = ReactionInjuryFormula.CalculateOverloadDamage(baseDamage, mult, astral);
-				break;
+				SpellElemental.LOGGER.debug("超载反应详细计算:");
+				SpellElemental.LOGGER.debug("  基础伤害: {}", baseDamage);
+				SpellElemental.LOGGER.debug("  反应倍率: {}", mult);
+				SpellElemental.LOGGER.debug("  星耀祝福: {}", astral);
+				SpellElemental.LOGGER.debug("  最终伤害: {}", finalDamage);
+				return finalDamage;
 			default:
 				finalDamage = baseDamage * mult;
+				SpellElemental.LOGGER.debug("默认伤害详细计算:");
+				SpellElemental.LOGGER.debug("  基础伤害: {}", baseDamage);
+				SpellElemental.LOGGER.debug("  反应倍率: {}", mult);
+				SpellElemental.LOGGER.debug("  最终伤害: {} * {} = {}", baseDamage, mult, finalDamage);
+				return finalDamage;
+		}
+	}
+	
+
+	
+	/**
+	 * 检查效果触发条件
+	 */
+	private static boolean checkEffectConditions(LivingEntity attacker, LivingEntity target, ElementReactionConfig.ReactionEffect effect, float currentDamage) {
+		ElementReactionConfig.EffectConditions conditions = effect.getConditions();
+		if (conditions == null) {
+			return true; // 无条件限制
 		}
 		
-		if (config.getEffects() != null && config.getEffects().isAreaDamage()) {
-			applyAreaDamage(target, finalDamage, config.getEffects().getAreaRadius());
-		} else {
-			target.hurt(target.damageSources().magic(), finalDamage);
+		// 检查伤害范围
+		if (currentDamage < conditions.getMinimumDamage() || currentDamage > conditions.getMaximumDamage()) {
+			return false;
 		}
 		
-		if (config.getEffects() != null && config.getEffects().getStatusEffects() != null) {
-			for (ElementReactionConfig.StatusEffect statusEffect : config.getEffects().getStatusEffects()) {
-				applyStatusEffect(target, statusEffect);
+		// 检查必需元素
+		if (conditions.getRequiredElements() != null && !conditions.getRequiredElements().isEmpty()) {
+			for (String requiredElement : conditions.getRequiredElements()) {
+				String baseElement = normalizeToBase(requiredElement);
+				if (getElementAmount(target, baseElement) <= 0) {
+					return false;
+				}
+			}
+		}
+		
+		// 检查排除元素
+		if (conditions.getExcludedElements() != null && !conditions.getExcludedElements().isEmpty()) {
+			for (String excludedElement : conditions.getExcludedElements()) {
+				String baseElement = normalizeToBase(excludedElement);
+				if (getElementAmount(target, baseElement) > 0) {
+					return false;
 			}
 		}
 	}
+		
+		return true;
+	}
+	
+
+	
+
+	
+
 
 	private static void applyAreaDamage(LivingEntity target, float damage, float radius) {
 		Level level = target.level();
@@ -366,12 +403,28 @@ public class ElementReactionHandler {
 		List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, area);
 		
 		for (LivingEntity entity : entities) {
-			DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
-			if (includeSelf && entity == target) {
-				entity.hurt(ds, damage);
-			} else if (entity.isAlive() && !entity.isSpectator() && entity != target) {
-				entity.hurt(ds, damage);
+			// 跳过非存活实体和旁观者
+			if (!entity.isAlive() || entity.isSpectator()) {
+				continue;
 			}
+			
+			// 处理目标实体（被攻击者）
+			if (entity == target) {
+				if (includeSelf) {
+					DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
+					entity.hurt(ds, damage);
+				}
+				continue;
+			}
+			
+			// 跳过攻击者，避免自伤
+			if (entity == attacker) {
+				continue;
+			}
+			
+			// 对其他范围内的实体造成伤害
+			DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
+				entity.hurt(ds, damage);
 		}
 	}
 	

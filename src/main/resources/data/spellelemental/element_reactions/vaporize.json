@@ -14,8 +14,13 @@
         "secondary_consumption": 100
       },
       "damage_effects": {
-        "reaction_type": "amplified_reaction",
-        "damage_multiplier": 1.5
+        "reaction_effects": [
+          {
+            "effect_type": "amplified_reaction",
+            "damage_multiplier": 1.5,
+            "priority": 10
+          }
+        ]
       }
     },
     {
@@ -28,8 +33,13 @@
         "secondary_consumption": 200
       },
       "damage_effects": {
-        "reaction_type": "amplified_reaction",
-        "damage_multiplier": 2.0
+        "reaction_effects": [
+          {
+            "effect_type": "amplified_reaction",
+            "damage_multiplier": 2.0,
+            "priority": 10
+          }
+        ]
       }
     }
   ]

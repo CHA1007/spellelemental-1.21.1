@@ -43,8 +43,8 @@ public class ElementAttachmentRegistry {
                 
                 // 记录最后应用的元素（如果是动态处理器）
                 if (handler instanceof DynamicElementHandler) {
-                    String elementId = ((DynamicElementHandler) handler).getConfig().getElementId();
-                    latestAppliedElement.set(elementId);
+                    String attachmentType = ((DynamicElementHandler) handler).getConfig().getAttachmentType();
+                    latestAppliedElement.set(attachmentType);
                 }
                 
                 break; // 只应用第一个匹配的处理器

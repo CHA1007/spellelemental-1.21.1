@@ -1,7 +1,7 @@
 {
   "element_id": "nature",
   "display_name": "Nature Element",
-  "attachment_type": "spellelemental:nature_element",
+  "attachment_type": "nature_element",
   "type": "damage_source",
   "damage_source_conditions": {
     "damage_source_patterns": ["nature_magic"]

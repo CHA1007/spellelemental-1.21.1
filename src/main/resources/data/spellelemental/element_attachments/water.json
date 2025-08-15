@@ -1,7 +1,7 @@
 {
   "element_id": "water",
   "display_name": "Water Element",
-  "attachment_type": "spellelemental:water_element",
+  "attachment_type": "water_element",
   "type": "environmental",
   "environmental_conditions": {
     "water_conditions": {

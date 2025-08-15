@@ -20,6 +20,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import com.chadate.spellelemental.command.DebugCommand;
 import com.chadate.spellelemental.event.element.ElementEnvironmentSystem;
 
+
 @Mod(SpellElemental.MODID)
 public class SpellElemental {
     public static final String MODID = "spellelemental";
@@ -28,6 +29,8 @@ public class SpellElemental {
     public SpellElemental(IEventBus modEventBus) {
         ModAttributes.register(modEventBus);
         SpellAttachments.register(modEventBus);
+
+
 
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, CritEventHandler::applyCritBonus);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, PhysicalEventHandler::applyPhysicalBonus);

@@ -11,6 +11,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -68,8 +69,23 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                 errorCount++;
             }
         }
+
+
         
         SpellElemental.LOGGER.info("元素反应配置加载完成: {} 个成功, {} 个错误", successCount, errorCount);
+        
+        // 调试输出：显示所有加载的反应配置
+        SpellElemental.LOGGER.info("=== 已加载的反应配置 ===");
+        for (Map.Entry<String, ElementReactionConfig> entry : REACTION_CONFIGS.entrySet()) {
+            ElementReactionConfig config = entry.getValue();
+            SpellElemental.LOGGER.info("反应ID: {} -> {} + {} (效果数量: {})", 
+                config.getReactionId(), 
+                config.getPrimaryElement(), 
+                config.getSecondaryElement(),
+                config.getEffects() != null && config.getEffects().getReactionEffects() != null ? 
+                    config.getEffects().getReactionEffects().size() : 0);
+        }
+        SpellElemental.LOGGER.info("=== 反应配置加载完成 ===");
     }
 
     private int loadVariantsFile(ResourceLocation rl, JsonObject obj) {
@@ -77,12 +93,16 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
         String reactionName = obj.has("reaction_name") ? obj.get("reaction_name").getAsString() : reactionId;
         String description = obj.has("description") ? obj.get("description").getAsString() : "";
         int priority = obj.has("priority") ? obj.get("priority").getAsInt() : 0;
+        
+        SpellElemental.LOGGER.debug("加载反应文件: {} (ID: {}, 名称: {})", rl, reactionId, reactionName);
+        
         int count = 0;
         for (JsonElement variantEl : obj.getAsJsonArray("variants")) {
             JsonObject v = variantEl.getAsJsonObject();
             JsonObject ec = v.getAsJsonObject("element_conditions");
             JsonObject cons = v.getAsJsonObject("element_consumption");
             JsonObject dmg = v.getAsJsonObject("damage_effects");
+            
             ElementReactionConfig cfg = new ElementReactionConfig();
             cfg.setReactionId(reactionId + ":" + count);
             cfg.setReactionName(reactionName);
@@ -93,21 +113,18 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
             cfg.setPrimaryConsumption(cons.get("primary_consumption").getAsInt());
             cfg.setSecondaryConsumption(cons.get("secondary_consumption").getAsInt());
             cfg.setDamageMultiplier(dmg.has("damage_multiplier") ? dmg.get("damage_multiplier").getAsFloat() : 1.0f);
+            
             ElementReactionConfig.ReactionEffects effects = new ElementReactionConfig.ReactionEffects();
-            effects.setDamageType(dmg.has("reaction_type") ? dmg.get("reaction_type").getAsString() : "");
-            if (dmg.has("area_damage")) {
-                effects.setAreaDamage(dmg.get("area_damage").getAsBoolean());
-            }
-            if (dmg.has("area_radius")) {
-                effects.setAreaRadius(dmg.get("area_radius").getAsFloat());
-            }
-            if (dmg.has("include_self")) {
-                effects.setIncludeSelf(dmg.get("include_self").getAsBoolean());
-            }
-            if (dmg.has("damage_source")) {
-                effects.setDamageSource(dmg.get("damage_source").getAsString());
-            }
+            
+            // 统一处理效果配置
+            loadEffectsConfiguration(dmg, effects);
+            
             cfg.setEffects(effects);
+            
+            SpellElemental.LOGGER.debug("处理变体 {}: 元素 {} + {}, 效果数量: {}", 
+                count, cfg.getPrimaryElement(), cfg.getSecondaryElement(), 
+                effects.getReactionEffects() != null ? effects.getReactionEffects().size() : 0);
+            
             if (validateConfig(cfg, rl)) {
                 storeConfig(cfg);
                 count++;
@@ -119,9 +136,118 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
     }
     
     /**
+     * 加载效果配置（仅支持新格式）
+     */
+    private void loadEffectsConfiguration(JsonObject dmg, ElementReactionConfig.ReactionEffects effects) {
+        SpellElemental.LOGGER.debug("加载效果配置，damage_effects字段: {}", dmg.keySet());
+        
+        // 处理新格式：reaction_effects 数组
+        if (dmg.has("reaction_effects") && dmg.get("reaction_effects").isJsonArray()) {
+            List<ElementReactionConfig.ReactionEffect> reactionEffects = new java.util.ArrayList<>();
+            for (JsonElement effectEl : dmg.getAsJsonArray("reaction_effects")) {
+                JsonObject effectObj = effectEl.getAsJsonObject();
+                ElementReactionConfig.ReactionEffect effect = loadReactionEffect(effectObj);
+                reactionEffects.add(effect);
+            }
+            effects.setReactionEffects(reactionEffects);
+            SpellElemental.LOGGER.debug("加载了 {} 个反应效果", reactionEffects.size());
+        } else {
+            SpellElemental.LOGGER.warn("未找到 reaction_effects 数组或格式不正确");
+        }
+        
+        // 处理其他配置字段
+        if (dmg.has("status_effects")) {
+            // 可以在这里加载状态效果
+        }
+        
+        if (dmg.has("element_removal")) {
+            effects.setElementRemoval(dmg.get("element_removal").getAsBoolean());
+        }
+        
+        if (dmg.has("cooldown")) {
+            effects.setCooldown(dmg.get("cooldown").getAsInt());
+        }
+    }
+    
+    /**
+     * 加载单个反应效果
+     */
+    private ElementReactionConfig.ReactionEffect loadReactionEffect(JsonObject effectObj) {
+        ElementReactionConfig.ReactionEffect effect = new ElementReactionConfig.ReactionEffect();
+        
+        if (effectObj.has("effect_type")) {
+            effect.setEffectType(effectObj.get("effect_type").getAsString());
+        }
+        
+        if (effectObj.has("damage_multiplier")) {
+            effect.setDamageMultiplier(effectObj.get("damage_multiplier").getAsFloat());
+        }
+        
+        if (effectObj.has("area_radius")) {
+            effect.setAreaRadius(effectObj.get("area_radius").getAsFloat());
+        }
+        
+        if (effectObj.has("include_self")) {
+            effect.setIncludeSelf(effectObj.get("include_self").getAsBoolean());
+        }
+        
+        if (effectObj.has("damage_source")) {
+            effect.setDamageSource(effectObj.get("damage_source").getAsString());
+        }
+        
+        if (effectObj.has("priority")) {
+            effect.setPriority(effectObj.get("priority").getAsInt());
+        }
+        
+        // 处理效果条件
+        if (effectObj.has("conditions")) {
+            effect.setConditions(loadEffectConditions(effectObj.getAsJsonObject("conditions")));
+        }
+        
+        return effect;
+    }
+    
+    /**
+     * 加载效果条件
+     */
+    private ElementReactionConfig.EffectConditions loadEffectConditions(JsonObject conditionsObj) {
+        ElementReactionConfig.EffectConditions conditions = new ElementReactionConfig.EffectConditions();
+        
+        if (conditionsObj.has("minimum_damage")) {
+            conditions.setMinimumDamage(conditionsObj.get("minimum_damage").getAsFloat());
+        }
+        
+        if (conditionsObj.has("maximum_damage")) {
+            conditions.setMaximumDamage(conditionsObj.get("maximum_damage").getAsFloat());
+        }
+        
+        if (conditionsObj.has("required_elements")) {
+            List<String> requiredElements = new java.util.ArrayList<>();
+            for (JsonElement elementEl : conditionsObj.getAsJsonArray("required_elements")) {
+                requiredElements.add(elementEl.getAsString());
+            }
+            conditions.setRequiredElements(requiredElements);
+        }
+        
+        if (conditionsObj.has("excluded_elements")) {
+            List<String> excludedElements = new java.util.ArrayList<>();
+            for (JsonElement elementEl : conditionsObj.getAsJsonArray("excluded_elements")) {
+                excludedElements.add(elementEl.getAsString());
+            }
+            conditions.setExcludedElements(excludedElements);
+        }
+        
+        return conditions;
+    }
+    
+
+    
+    /**
      * 验证配置的有效性
      */
     private boolean validateConfig(ElementReactionConfig config, ResourceLocation resourceLocation) {
+        SpellElemental.LOGGER.debug("验证配置: {} (ID: {})", resourceLocation, config.getReactionId());
+        
         if (config == null) {
             SpellElemental.LOGGER.error("配置为空: {}", resourceLocation);
             return false;
@@ -156,6 +282,16 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
             SpellElemental.LOGGER.error("效果配置不能为空: {}", resourceLocation);
             return false;
         }
+        
+        // 检查效果配置是否有效
+        if (!config.getEffects().hasEffects()) {
+            SpellElemental.LOGGER.error("效果配置中没有有效的反应效果: {} (reaction_effects: {})", 
+                resourceLocation, config.getEffects().getReactionEffects());
+            return false;
+        }
+        
+        SpellElemental.LOGGER.debug("配置验证通过: {} (效果数量: {})", resourceLocation, 
+            config.getEffects().getReactionEffects() != null ? config.getEffects().getReactionEffects().size() : 0);
         
         return true;
     }

@@ -1,7 +1,7 @@
 {
   "element_id": "ice",
   "display_name": "Ice Element",
-  "attachment_type": "spellelemental:ice_element",
+  "attachment_type": "ice_element",
   "type": "damage_source",
   "damage_source_conditions": {
     "damage_source_patterns": ["ice_magic"]
