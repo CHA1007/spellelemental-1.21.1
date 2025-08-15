@@ -41,14 +41,8 @@ public final class ElementDecaySystem {
 				int newValue = value - 1;
 				container.setValue(key, newValue);
 				if (newValue == 0) {
-					PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, 0));
-				} else {
-					hasAny = true;
-				}
-			}
-			if (!hasAny) {
-				// 容器已清空，从跟踪集合移除
-				// 延迟由外层 removeIf 处理
+                    PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, 0));
+                }
 			}
 		}
 	}

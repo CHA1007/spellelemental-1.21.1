@@ -1,24 +1,22 @@
 package com.chadate.spellelemental;
 
 import com.chadate.spellelemental.attribute.ModAttributes;
+import com.chadate.spellelemental.command.DebugCommand;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.attachment.attack.ElementEventHandler;
-
+import com.chadate.spellelemental.event.crit.CritEventHandler;
+import com.chadate.spellelemental.event.element.ElementDecaySystem;
+import com.chadate.spellelemental.event.element.ElementEnvironmentSystem;
+import com.chadate.spellelemental.event.heal.HealingEventHandler;
+import com.chadate.spellelemental.event.physical.PhysicalEventHandler;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.chadate.spellelemental.event.crit.CritEventHandler;
-import com.chadate.spellelemental.event.heal.HealingEventHandler;
-import com.chadate.spellelemental.event.physical.*;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.common.NeoForge;
-import com.chadate.spellelemental.event.element.ElementDecaySystem;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import com.chadate.spellelemental.command.DebugCommand;
-import com.chadate.spellelemental.event.element.ElementEnvironmentSystem;
 
 
 @Mod(SpellElemental.MODID)

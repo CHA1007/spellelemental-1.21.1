@@ -1,2 +1,45 @@
 {
+  "attribute.spellelemental.astral_blessing": "星耀祝福",
+  "attribute.spellelemental.spell_crit_rate": "法术暴击率",
+  "attribute.spellelemental.spell_crit_damage": "法术暴击伤害",
+  "attribute.spellelemental.physical_damage_boost": "物理伤害加成",
+  "attribute.spellelemental.physical_damage_resist": "物理伤害抗性",
+  "attribute.spellelemental.healing_power": "治疗加成",
+
+  "commands.spell_debug.toggle.success": "调试模式已%s",
+  "commands.spell_debug.toggle.enabled": "启用",
+  "commands.spell_debug.toggle.disabled": "禁用",
+
+  "reaction.spellelemental.melt": "融化",
+  "reaction.spellelemental.overload": "超载",
+  "reaction.spellelemental.vaporize": "蒸发",
+
+  "gui.spellelemental.debug.title": "元素调试信息",
+  "gui.spellelemental.debug.element_status": "元素状态",
+  "gui.spellelemental.debug.reaction_triggered": "触发反应: %s",
+  "gui.spellelemental.debug.damage_multiplier": "伤害倍率: %.2f",
+  "gui.spellelemental.debug.element_amount": "%s: %d",
+
+  "tooltip.spellelemental.element_attachment": "元素附着",
+  "tooltip.spellelemental.element_reaction": "元素反应",
+  "tooltip.spellelemental.duration": "持续时间: %d 秒",
+  "tooltip.spellelemental.damage_bonus": "伤害加成: +%.1f%%",
+
+  "death.attack.spellelemental.melt": "%1$s 被融化反应烧毁了",
+  "death.attack.spellelemental.overload": "%1$s 被超载反应炸死了",
+  "death.attack.spellelemental.electro_charged": "%1$s 被感电反应电死了",
+  "death.attack.spellelemental.freeze": "%1$s 被冰冻致死",
+
+  "effect.spellelemental.element_attachment": "元素附着",
+  "effect.spellelemental.element_attachment.description": "受到元素影响",
+
+  "itemGroup.spellelemental": "法术元素",
+
+  "config.spellelemental.title": "法术元素配置",
+  "config.spellelemental.debug_mode": "调试模式",
+  "config.spellelemental.debug_mode.tooltip": "启用元素调试信息显示",
+  "config.spellelemental.element_decay_rate": "元素衰减速率",
+  "config.spellelemental.element_decay_rate.tooltip": "元素附着的衰减速度",
+  "config.spellelemental.reaction_cooldown": "反应冷却时间",
+  "config.spellelemental.reaction_cooldown.tooltip": "元素反应的冷却时间（毫秒）"
 }

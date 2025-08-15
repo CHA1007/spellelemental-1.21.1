@@ -1,2 +1,45 @@
 {
+  "attribute.spellelemental.astral_blessing": "Astral Blessing",
+  "attribute.spellelemental.spell_crit_rate": "Spell Critical Rate",
+  "attribute.spellelemental.spell_crit_damage": "Spell Critical Damage",
+  "attribute.spellelemental.physical_damage_boost": "Physical Damage Boost",
+  "attribute.spellelemental.physical_damage_resist": "Physical Damage Resistance",
+  "attribute.spellelemental.healing_power": "Healing Power",
+
+  "commands.spell_debug.toggle.success": "Debug mode %s",
+  "commands.spell_debug.toggle.enabled": "enabled",
+  "commands.spell_debug.toggle.disabled": "disabled",
+
+  "reaction.spellelemental.melt": "Melt",
+  "reaction.spellelemental.overload": "Overload",
+  "reaction.spellelemental.vaporize": "Vaporize",
+
+  "gui.spellelemental.debug.title": "Element Debug Info",
+  "gui.spellelemental.debug.element_status": "Element Status",
+  "gui.spellelemental.debug.reaction_triggered": "Reaction Triggered: %s",
+  "gui.spellelemental.debug.damage_multiplier": "Damage Multiplier: %.2f",
+  "gui.spellelemental.debug.element_amount": "%s: %d",
+
+  "tooltip.spellelemental.element_attachment": "Element Attachment",
+  "tooltip.spellelemental.element_reaction": "Element Reaction",
+  "tooltip.spellelemental.duration": "Duration: %d seconds",
+  "tooltip.spellelemental.damage_bonus": "Damage Bonus: +%.1f%%",
+
+  "death.attack.spellelemental.melt": "%1$s was burned by a melt reaction",
+  "death.attack.spellelemental.overload": "%1$s was blown up by an overload reaction",
+  "death.attack.spellelemental.electro_charged": "%1$s was electrocuted by an electro-charged reaction",
+  "death.attack.spellelemental.freeze": "%1$s was frozen to death",
+
+  "effect.spellelemental.element_attachment": "Element Attachment",
+  "effect.spellelemental.element_attachment.description": "Affected by elemental forces",
+
+  "itemGroup.spellelemental": "Spell Elemental",
+
+  "config.spellelemental.title": "Spell Elemental Configuration",
+  "config.spellelemental.debug_mode": "Debug Mode",
+  "config.spellelemental.debug_mode.tooltip": "Enable element debug information display",
+  "config.spellelemental.element_decay_rate": "Element Decay Rate",
+  "config.spellelemental.element_decay_rate.tooltip": "The decay rate of element attachments",
+  "config.spellelemental.reaction_cooldown": "Reaction Cooldown",
+  "config.spellelemental.reaction_cooldown.tooltip": "Cooldown time for element reactions (milliseconds)"
 }
