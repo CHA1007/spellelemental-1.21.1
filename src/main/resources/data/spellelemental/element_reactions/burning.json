@@ -1,0 +1,37 @@
+{
+  "reaction_id": "burning",
+  "reaction_name": "燃烧反应",
+  "description": "当目标同时具有火元素与自然元素时，周期性造成火焰伤害的持续性反应（占位dot类型）",
+  "priority": 90,
+  "variants": [
+    {
+      "element_conditions": {
+        "primary_element": "fire_element",
+        "secondary_element": "nature_element"
+      },
+      "element_consumption": {
+        "primary_consumption": 0,
+        "secondary_consumption": 0
+      },
+      "damage_effects": {
+        "reaction_effects": [
+          {
+            "effect_type": "dot",
+            "damage_mode": "fusion",
+            "damage_multiplier": 0.25,
+            "base_source": "attribute",
+            "base_attribute": "minecraft:attack_damage",
+            "interval_ticks": 5,
+            "duration_ticks": 0,
+            "priority": 0,
+            "damage_source": "irons_spellbooks:fire_magic"
+          }
+        ]
+      },
+      "reaction_conditions": {
+        "minimum_primary_amount": 1,
+        "minimum_secondary_amount": 1
+      }
+    }
+  ]
+}

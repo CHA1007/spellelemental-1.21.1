@@ -33,13 +33,5 @@
   "effect.spellelemental.element_attachment": "元素附着",
   "effect.spellelemental.element_attachment.description": "受到元素影响",
 
-  "itemGroup.spellelemental": "法术元素",
-
-  "config.spellelemental.title": "法术元素配置",
-  "config.spellelemental.debug_mode": "调试模式",
-  "config.spellelemental.debug_mode.tooltip": "启用元素调试信息显示",
-  "config.spellelemental.element_decay_rate": "元素衰减速率",
-  "config.spellelemental.element_decay_rate.tooltip": "元素附着的衰减速度",
-  "config.spellelemental.reaction_cooldown": "反应冷却时间",
-  "config.spellelemental.reaction_cooldown.tooltip": "元素反应的冷却时间（毫秒）"
+  "itemGroup.spellelemental": "法术元素"
 }

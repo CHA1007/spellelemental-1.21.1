@@ -7,11 +7,12 @@
     "damage_source_patterns": ["ice_magic"]
   },
   "effects": {
-    "duration": 200
+    "duration": 200,
+    "min_damage": 0,
+    "apply_chance":1
   },
   "visual": {
-    "particle_effect": "minecraft:snowflake",
-    "sound_effect": "minecraft:block.glass.break",
+    "particle_effect": "irons_spellbooks:snowflake",
     "icon": "spellelemental:textures/elements/ice_element.png"
   }
 }

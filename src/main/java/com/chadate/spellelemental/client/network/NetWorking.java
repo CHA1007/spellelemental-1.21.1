@@ -20,35 +20,29 @@ public class NetWorking {
         registrar.playToClient(
                 ElementData.TYPE,
                 ElementData.STREAM_CODEC,
-                new DirectionalPayloadHandler<ElementData>(
-                        ClientPayloadHandler::handleDataOnNetwork,
-                        null
-                )
+                ClientPayloadHandler::handleDataOnNetwork
         );
         registrar.playToClient(
                 ElementData.ElementSnapshot.TYPE,
                 ElementData.ElementSnapshot.STREAM_CODEC,
-                new DirectionalPayloadHandler<ElementData.ElementSnapshot>(
-                        ClientPayloadHandler::handleSnapshotOnNetwork,
-                        null
-                )
+                ClientPayloadHandler::handleSnapshotOnNetwork
         );
         registrar.playToClient(
                 ElementData.ElementDebugToggle.TYPE,
                 ElementData.ElementDebugToggle.STREAM_CODEC,
-                (payload, context) -> ClientPayloadHandler.handleDebugToggleOnNetwork(payload, context)
+                ClientPayloadHandler::handleDebugToggleOnNetwork
         );
         // 客户端 -> 服务端 检查请求
         registrar.playToServer(
                 ElementData.ElementInspectRequest.TYPE,
                 ElementData.ElementInspectRequest.STREAM_CODEC,
-                (payload, context) -> ServerPayloadHandler.handleInspectRequest(payload, context)
+                ServerPayloadHandler::handleInspectRequest
         );
         // 服务端 -> 客户端 检查回包
         registrar.playToClient(
                 ElementData.ElementInspectResponse.TYPE,
                 ElementData.ElementInspectResponse.STREAM_CODEC,
-                (payload, context) -> ClientPayloadHandler.handleInspectResponseOnNetwork(payload, context)
+                ClientPayloadHandler::handleInspectResponseOnNetwork
         );
     }
 }

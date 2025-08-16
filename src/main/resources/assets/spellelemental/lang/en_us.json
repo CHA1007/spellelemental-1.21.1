@@ -33,13 +33,5 @@
   "effect.spellelemental.element_attachment": "Element Attachment",
   "effect.spellelemental.element_attachment.description": "Affected by elemental forces",
 
-  "itemGroup.spellelemental": "Spell Elemental",
-
-  "config.spellelemental.title": "Spell Elemental Configuration",
-  "config.spellelemental.debug_mode": "Debug Mode",
-  "config.spellelemental.debug_mode.tooltip": "Enable element debug information display",
-  "config.spellelemental.element_decay_rate": "Element Decay Rate",
-  "config.spellelemental.element_decay_rate.tooltip": "The decay rate of element attachments",
-  "config.spellelemental.reaction_cooldown": "Reaction Cooldown",
-  "config.spellelemental.reaction_cooldown.tooltip": "Cooldown time for element reactions (milliseconds)"
+  "itemGroup.spellelemental": "Spell Elemental"
 }

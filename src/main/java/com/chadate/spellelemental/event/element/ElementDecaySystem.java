@@ -14,36 +14,36 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 public final class ElementDecaySystem {
-	private static final Set<LivingEntity> TRACKED = Collections.newSetFromMap(new WeakHashMap<>());
+    private static final Set<LivingEntity> TRACKED = Collections.newSetFromMap(new WeakHashMap<>());
 
-	private ElementDecaySystem() {}
+    private ElementDecaySystem() {}
 
-	public static void track(LivingEntity entity) {
-		if (entity != null && !entity.level().isClientSide()) {
-			TRACKED.add(entity);
-		}
-	}
+    public static void track(LivingEntity entity) {
+        if (entity != null && !entity.level().isClientSide()) {
+            TRACKED.add(entity);
+        }
+    }
 
-	public static void onServerTick(ServerTickEvent.Post event) {
-		if (!(event.getServer().overworld() instanceof ServerLevel)) return;
-		if (TRACKED.isEmpty()) return;
+    public static void onServerTick(ServerTickEvent.Post event) {
+        event.getServer().overworld();
+        if (TRACKED.isEmpty()) return;
 
-		TRACKED.removeIf(entity -> entity == null || !entity.isAlive() || entity.level().isClientSide());
-		for (LivingEntity entity : TRACKED) {
-			ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
-			Map<String, Integer> snap = container.snapshot();
-			if (snap.isEmpty()) continue;
-			boolean hasAny = false;
-			for (Map.Entry<String, Integer> e : snap.entrySet()) {
-				String key = e.getKey();
-				int value = e.getValue();
-				if (value <= 0) continue;
-				int newValue = value - 1;
-				container.setValue(key, newValue);
-				if (newValue == 0) {
+        TRACKED.removeIf(entity -> entity == null || !entity.isAlive() || entity.level().isClientSide());
+        for (LivingEntity entity : TRACKED) {
+            ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
+            Map<String, Integer> snap = container.snapshot();
+            if (snap.isEmpty()) continue;
+            boolean hasAny = false;
+            for (Map.Entry<String, Integer> e : snap.entrySet()) {
+                String key = e.getKey();
+                int value = e.getValue();
+                if (value <= 0) continue;
+                int newValue = value - 1;
+                container.setValue(key, newValue);
+                if (newValue == 0) {
                     PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, 0));
                 }
-			}
-		}
-	}
-} 
+            }
+        }
+    }
+}

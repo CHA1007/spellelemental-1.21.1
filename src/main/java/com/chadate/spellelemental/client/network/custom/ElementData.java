@@ -11,9 +11,9 @@ public class ElementData implements CustomPacketPayload {
     static String element;
     static int duration;
 
-    public int entityIdMessage;
-    public String elementMessage;
-    public int durationMessage;
+    public final int entityIdMessage;
+    public final String elementMessage;
+    public final int durationMessage;
 
     public static int getEntityId() {
         return entityId;
@@ -62,9 +62,9 @@ public class ElementData implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ElementSnapshot> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_snapshot"));
         public static final StreamCodec<FriendlyByteBuf, ElementSnapshot> STREAM_CODEC = CustomPacketPayload.codec(ElementSnapshot::write, ElementSnapshot::new);
 
-        public int entityId;
-        public String[] keys;
-        public int[] values;
+        public final int entityId;
+        public final String[] keys;
+        public final int[] values;
 
         public ElementSnapshot(int entityId, String[] keys, int[] values) {
             this.entityId = entityId;
@@ -93,7 +93,7 @@ public class ElementData implements CustomPacketPayload {
         }
 
         @Override
-        public Type<? extends CustomPacketPayload> type() {
+        public @NotNull Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
@@ -103,34 +103,34 @@ public class ElementData implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ElementDebugToggle> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_debug_toggle"));
         public static final StreamCodec<FriendlyByteBuf, ElementDebugToggle> STREAM_CODEC = CustomPacketPayload.codec(ElementDebugToggle::write, ElementDebugToggle::new);
 
-        public boolean enabled;
+        public final boolean enabled;
 
         public ElementDebugToggle(boolean enabled) { this.enabled = enabled; }
         private ElementDebugToggle(FriendlyByteBuf buf) { this.enabled = buf.readBoolean(); }
         private void write(FriendlyByteBuf buf) { buf.writeBoolean(enabled); }
         @Override
-        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+        public @NotNull Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     // 客户端 -> 服务端：检查某实体的元素快照
     public static class ElementInspectRequest implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ElementInspectRequest> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_inspect_req"));
         public static final StreamCodec<FriendlyByteBuf, ElementInspectRequest> STREAM_CODEC = CustomPacketPayload.codec(ElementInspectRequest::write, ElementInspectRequest::new);
-        public int entityId;
+        public final int entityId;
         public ElementInspectRequest(int entityId) { this.entityId = entityId; }
         private ElementInspectRequest(FriendlyByteBuf buf) { this.entityId = buf.readInt(); }
         private void write(FriendlyByteBuf buf) { buf.writeInt(entityId); }
         @Override
-        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+        public @NotNull Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     // 服务端 -> 客户端：检查回复
     public static class ElementInspectResponse implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ElementInspectResponse> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_inspect_resp"));
         public static final StreamCodec<FriendlyByteBuf, ElementInspectResponse> STREAM_CODEC = CustomPacketPayload.codec(ElementInspectResponse::write, ElementInspectResponse::new);
-        public int entityId;
-        public String[] keys;
-        public int[] values;
+        public final int entityId;
+        public final String[] keys;
+        public final int[] values;
         public ElementInspectResponse(int entityId, String[] keys, int[] values) { this.entityId = entityId; this.keys = keys; this.values = values; }
         private ElementInspectResponse(FriendlyByteBuf buf) {
             this.entityId = buf.readInt();
@@ -151,6 +151,6 @@ public class ElementData implements CustomPacketPayload {
             }
         }
         @Override
-        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+        public @NotNull Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 }

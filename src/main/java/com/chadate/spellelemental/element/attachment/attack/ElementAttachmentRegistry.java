@@ -20,8 +20,6 @@ public class ElementAttachmentRegistry {
      */
     public static void register(ElementAttachmentHandler handler) {
         handlers.add(handler);
-        // SpellElemental.LOGGER.debug("Registered element attachment handler: {}", 
-        //     handler.getClass().getSimpleName());
     }
 
     /**
@@ -36,14 +34,14 @@ public class ElementAttachmentRegistry {
      * 处理元素附着逻辑
      * 遍历所有注册的处理器，找到第一个匹配的进行处理
      */
-    public static void handleAttachment(LivingEntity target, DamageSource source, int entityId) {
+    public static void handleAttachment(LivingEntity target, DamageSource source, int entityId, float damageAmount) {
         for (ElementAttachmentHandler handler : handlers) {
-            if (handler.canApply(target, source)) {
+            if (handler.canApply(target, source, damageAmount)) {
                 handler.applyEffect(target, source, entityId);
                 
                 // 记录最后应用的元素（如果是动态处理器）
                 if (handler instanceof DynamicElementHandler) {
-                    String attachmentType = ((DynamicElementHandler) handler).getConfig().getAttachmentType();
+                    String attachmentType = ((DynamicElementHandler) handler).config().getAttachmentType();
                     latestAppliedElement.set(attachmentType);
                 }
                 

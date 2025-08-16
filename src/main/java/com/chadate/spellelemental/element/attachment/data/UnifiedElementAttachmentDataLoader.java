@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -27,8 +28,8 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
     }
     
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap, 
-                        ResourceManager resourceManager, ProfilerFiller profilerFiller) {
+    protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap,
+                         @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profilerFiller) {
         
         // 清空现有的处理器与图标映射
         ElementAttachmentRegistry.clearHandlers();
@@ -58,6 +59,10 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
                 // 记录图标（如果提供）
                 if (config.getVisual() != null && config.getVisual().getIcon() != null) {
                     UnifiedElementAttachmentAssets.setIcon(config.getAttachmentType(), config.getVisual().getIcon());
+                }
+                // 记录粒子效果键（如果提供）
+                if (config.getVisual() != null && config.getVisual().getParticleEffect() != null) {
+                    UnifiedElementAttachmentAssets.setParticleEffect(config.getAttachmentType(), config.getVisual().getParticleEffect());
                 }
                 
                 // 根据类型分发到对应的处理器

@@ -444,6 +444,10 @@ public class UnifiedElementAttachmentConfig {
     public static class EffectConfig {
         @SerializedName("duration")
         private int duration;
+        @SerializedName("min_damage")
+        private float minDamage = 0f;
+        @SerializedName("apply_chance")
+        private float applyChance = 1.0f; // 0..1
         
         public int getDuration() {
             return duration;
@@ -451,6 +455,22 @@ public class UnifiedElementAttachmentConfig {
         
         public void setDuration(int duration) {
             this.duration = duration;
+        }
+
+        public float getMinDamage() {
+            return minDamage;
+        }
+
+        public void setMinDamage(float minDamage) {
+            this.minDamage = minDamage;
+        }
+
+        public float getApplyChance() {
+            return applyChance;
+        }
+
+        public void setApplyChance(float applyChance) {
+            this.applyChance = applyChance;
         }
     }
     
@@ -461,9 +481,6 @@ public class UnifiedElementAttachmentConfig {
         @SerializedName("particle_effect")
         private String particleEffect;
         
-        @SerializedName("sound_effect")
-        private String soundEffect;
-        
         @SerializedName("icon")
         private String icon;
         
@@ -473,14 +490,6 @@ public class UnifiedElementAttachmentConfig {
         
         public void setParticleEffect(String particleEffect) {
             this.particleEffect = particleEffect;
-        }
-        
-        public String getSoundEffect() {
-            return soundEffect;
-        }
-        
-        public void setSoundEffect(String soundEffect) {
-            this.soundEffect = soundEffect;
         }
         
         public String getIcon() {

@@ -10,11 +10,11 @@
     }
   },
   "effects": {
-    "duration": 200
+    "duration": 200,
+    "apply_chance": 1
   },
   "visual": {
     "particle_effect": "minecraft:dripping_water",
-    "sound_effect": "minecraft:ambient.underwater.enter",
     "icon": "spellelemental:textures/elements/water_element.png"
   }
 }

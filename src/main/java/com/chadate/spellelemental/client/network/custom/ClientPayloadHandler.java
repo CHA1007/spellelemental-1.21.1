@@ -72,7 +72,7 @@ public class ClientPayloadHandler {
 
 	public static final class InspectCache {
 		public static int entityId = -1;
-		public static Map<String, Integer> data = new HashMap<>();
+		public static final Map<String, Integer> data = new HashMap<>();
 		public static long lastUpdateMs = 0L;
 	}
 
@@ -97,9 +97,8 @@ public class ClientPayloadHandler {
 			long remain = s.startDuration - elapsed;
 			return (int)Math.max(0, remain);
 		}
-		private static final class Status {
-			final int startDuration; final long atGameTime;
-			Status(int d, long t) { this.startDuration = d; this.atGameTime = t; }
-		}
+
+        private record Status(int startDuration, long atGameTime) {
+        }
 	}
 }

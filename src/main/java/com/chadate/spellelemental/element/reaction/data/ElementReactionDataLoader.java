@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
+import org.jetbrains.annotations.NotNull;
 
 
 import java.util.ArrayList;
@@ -36,8 +37,8 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
     }
     
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap, 
-                        ResourceManager resourceManager, ProfilerFiller profilerFiller) {
+    protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap,
+                         @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profilerFiller) {
         
         // 清空现有的配置
         REACTION_CONFIGS.clear();
@@ -156,16 +157,31 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
         }
         
         // 处理其他配置字段
-        if (dmg.has("status_effects")) {
-            // 可以在这里加载状态效果
-        }
-        
+        dmg.has("status_effects");// 可以在这里加载状态效果
+
         if (dmg.has("element_removal")) {
             effects.setElementRemoval(dmg.get("element_removal").getAsBoolean());
         }
         
         if (dmg.has("cooldown")) {
             effects.setCooldown(dmg.get("cooldown").getAsInt());
+        }
+
+        // 解析 grant_elements
+        if (dmg.has("grant_elements") && dmg.get("grant_elements").isJsonArray()) {
+            List<ElementReactionConfig.GrantElement> grants = new java.util.ArrayList<>();
+            for (JsonElement geEl : dmg.getAsJsonArray("grant_elements")) {
+                if (!geEl.isJsonObject()) continue;
+                JsonObject gobj = geEl.getAsJsonObject();
+                ElementReactionConfig.GrantElement g = new ElementReactionConfig.GrantElement();
+                if (gobj.has("element")) g.setElement(gobj.get("element").getAsString());
+                if (gobj.has("amount")) g.setAmount(gobj.get("amount").getAsInt());
+                if (gobj.has("chance")) g.setChance(gobj.get("chance").getAsFloat());
+                if (gobj.has("target")) g.setTarget(gobj.get("target").getAsString());
+                if (gobj.has("mode")) g.setMode(gobj.get("mode").getAsString());
+                grants.add(g);
+            }
+            effects.setGrantElements(grants);
         }
     }
     
@@ -197,6 +213,36 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
         
         if (effectObj.has("priority")) {
             effect.setPriority(effectObj.get("priority").getAsInt());
+        }
+
+        // 新增：伤害模式与固定伤害
+        if (effectObj.has("damage_mode")) {
+            effect.setDamageMode(effectObj.get("damage_mode").getAsString());
+        }
+        if (effectObj.has("fixed_damage")) {
+            effect.setFixedDamage(effectObj.get("fixed_damage").getAsFloat());
+        }
+
+        // 解析 DOT 相关字段
+        if (effectObj.has("tick_damage")) {
+            effect.setTickDamage(effectObj.get("tick_damage").getAsFloat());
+        }
+        if (effectObj.has("interval_ticks")) {
+            effect.setIntervalTicks(effectObj.get("interval_ticks").getAsInt());
+        }
+        if (effectObj.has("duration_ticks")) {
+            effect.setDurationTicks(effectObj.get("duration_ticks").getAsInt());
+        }
+        if (effectObj.has("check_required_each_tick")) {
+            effect.setCheckRequiredEachTick(effectObj.get("check_required_each_tick").getAsBoolean());
+        }
+
+        // 解析 base 来源
+        if (effectObj.has("base_source")) {
+            effect.setBaseSource(effectObj.get("base_source").getAsString());
+        }
+        if (effectObj.has("base_attribute")) {
+            effect.setBaseAttribute(effectObj.get("base_attribute").getAsString());
         }
         
         // 处理效果条件
@@ -247,12 +293,7 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
      */
     private boolean validateConfig(ElementReactionConfig config, ResourceLocation resourceLocation) {
         SpellElemental.LOGGER.debug("验证配置: {} (ID: {})", resourceLocation, config.getReactionId());
-        
-        if (config == null) {
-            SpellElemental.LOGGER.error("配置为空: {}", resourceLocation);
-            return false;
-        }
-        
+
         if (config.getReactionId() == null || config.getReactionId().trim().isEmpty()) {
             SpellElemental.LOGGER.error("反应ID不能为空: {}", resourceLocation);
             return false;
@@ -268,12 +309,16 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
             return false;
         }
         
-        if (config.getPrimaryConsumption() <= 0) {
+        boolean hasDot = config.getEffects() != null
+                && config.getEffects().getReactionEffects() != null
+                && config.getEffects().getReactionEffects().stream().anyMatch(e -> "dot".equals(e.getEffectType()));
+
+        if (!hasDot && config.getPrimaryConsumption() <= 0) {
             SpellElemental.LOGGER.error("主导元素消耗量必须大于0: {}", resourceLocation);
             return false;
         }
         
-        if (config.getSecondaryConsumption() <= 0) {
+        if (!hasDot && config.getSecondaryConsumption() <= 0) {
             SpellElemental.LOGGER.error("被反应元素消耗量必须大于0: {}", resourceLocation);
             return false;
         }
@@ -300,6 +345,15 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
         REACTION_CONFIGS.put(config.getReactionId(), config);
         String elementPair = createOrderedPairKey(config.getPrimaryElement(), config.getSecondaryElement());
         ELEMENT_PAIR_REACTIONS.put(elementPair, config);
+
+        // 对于 DOT 反应，方向无关：额外登记反向键，避免重复写双向变体
+        boolean hasDot = config.getEffects() != null
+                && config.getEffects().getReactionEffects() != null
+                && config.getEffects().getReactionEffects().stream().anyMatch(e -> "dot".equals(e.getEffectType()));
+        if (hasDot) {
+            String reversed = createOrderedPairKey(config.getSecondaryElement(), config.getPrimaryElement());
+            ELEMENT_PAIR_REACTIONS.put(reversed, config);
+        }
         SpellElemental.LOGGER.debug("加载元素反应配置: {} -> {} + {} (priority={})",
                 config.getReactionName(), config.getPrimaryElement(), config.getSecondaryElement(), config.getPriority());
     }

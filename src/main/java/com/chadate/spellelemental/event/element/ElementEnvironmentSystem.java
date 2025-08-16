@@ -17,8 +17,7 @@ public final class ElementEnvironmentSystem {
 
 	public static void onServerTick(ServerTickEvent.Post event) {
 		ServerLevel level = event.getServer().overworld();
-		if (level == null) return;
-		List<UnifiedElementAttachmentConfig> configs = EnvironmentalAttachmentRegistry.getAll();
+        List<UnifiedElementAttachmentConfig> configs = EnvironmentalAttachmentRegistry.getAll();
 		if (configs.isEmpty()) return;
 
 		for (ServerLevel srv : event.getServer().getAllLevels()) {
@@ -34,7 +33,8 @@ public final class ElementEnvironmentSystem {
 					boolean ok = false;
 					if (needInWater && living.isInWaterOrBubble()) ok = true;
 					if (needInRain && living.level().isRainingAt(living.blockPosition())) ok = true;
-					if (!needInWater && !needInRain) ok = false;
+					if (!needInWater && !needInRain) {
+                    }
 					if (!ok) continue;
 					applyAttachment(living, cfg);
 				}

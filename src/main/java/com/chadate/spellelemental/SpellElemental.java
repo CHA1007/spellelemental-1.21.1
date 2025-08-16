@@ -6,6 +6,7 @@ import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.attachment.attack.ElementEventHandler;
 import com.chadate.spellelemental.event.crit.CritEventHandler;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
+import com.chadate.spellelemental.event.element.DotSystem;
 import com.chadate.spellelemental.event.element.ElementEnvironmentSystem;
 import com.chadate.spellelemental.event.heal.HealingEventHandler;
 import com.chadate.spellelemental.event.physical.PhysicalEventHandler;
@@ -35,6 +36,7 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, ElementEventHandler::handleElementAttachment);
         NeoForge.EVENT_BUS.register(HealingEventHandler.class);
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, ElementDecaySystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, DotSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, ElementEnvironmentSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(SpellElemental::onRegisterCommands);
     }

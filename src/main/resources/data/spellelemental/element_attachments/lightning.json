@@ -7,11 +7,12 @@
     "damage_source_patterns": ["lightning_magic"]
   },
   "effects": {
-    "duration": 200
+    "duration": 200,
+    "min_damage": 0,
+    "apply_chance":1
   },
   "visual": {
-    "particle_effect": "minecraft:electric_spark",
-    "sound_effect": "minecraft:entity.lightning_bolt.thunder",
+    "particle_effect": "irons_spellbooks:electricity",
     "icon": "spellelemental:textures/elements/lightning_element.png"
   }
 }

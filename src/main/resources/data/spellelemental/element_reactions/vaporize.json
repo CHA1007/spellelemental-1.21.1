@@ -21,7 +21,11 @@
             "priority": 10
           }
         ]
-      }
+      },
+      "reaction_conditions": {
+      "minimum_primary_amount": 1,
+      "minimum_secondary_amount": 1
+    }
     },
     {
       "element_conditions": {
@@ -40,6 +44,10 @@
             "priority": 10
           }
         ]
+      },
+      "reaction_conditions": {
+        "minimum_primary_amount": 1,
+        "minimum_secondary_amount": 1
       }
     }
   ]

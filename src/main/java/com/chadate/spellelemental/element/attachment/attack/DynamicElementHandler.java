@@ -15,69 +15,80 @@ import java.util.regex.Pattern;
 /**
  * 基于配置的动态元素处理器（纯容器写入）
  */
-public class DynamicElementHandler implements ElementAttachmentHandler {
-	private final UnifiedElementAttachmentConfig config;
+public record DynamicElementHandler(UnifiedElementAttachmentConfig config) implements ElementAttachmentHandler {
 
-	public DynamicElementHandler(UnifiedElementAttachmentConfig config) {
-		this.config = config;
-	}
+    @Override
+    public boolean canApply(LivingEntity target, DamageSource source, float damageAmount) {
+        // 仅支持基于伤害源的统一配置
+        if (config == null || !config.isDamageSourceType() ||
+                config.getDamageSourceConditions() == null ||
+                config.getDamageSourceConditions().getDamageSourcePatterns() == null) {
+            return false;
+        }
 
-	@Override
-	public boolean canApply(LivingEntity target, DamageSource source) {
-		// 仅支持基于伤害源的统一配置
-		if (config == null || !config.isDamageSourceType() ||
-			config.getDamageSourceConditions() == null ||
-			config.getDamageSourceConditions().getDamageSourcePatterns() == null) {
-			return false;
-		}
+        String sourceMsgId = source.getMsgId();
+        boolean patternMatched = config.getDamageSourceConditions().getDamageSourcePatterns()
+                .stream()
+                .anyMatch(pattern -> matchesPattern(sourceMsgId, pattern));
+        if (!patternMatched) return false;
 
-		String sourceMsgId = source.getMsgId();
-		return config.getDamageSourceConditions().getDamageSourcePatterns()
-				.stream()
-				.anyMatch(pattern -> matchesPattern(sourceMsgId, pattern));
-	}
+        // 最低伤害与概率
+        UnifiedElementAttachmentConfig.EffectConfig effects = config.getEffects();
+        if (effects != null) {
+            float min = effects.getMinDamage();
+            if (min > 0f && damageAmount < min) {
+                return false;
+            }
+            float chance = effects.getApplyChance();
+            if (chance < 1.0f) {
+                float roll = target.getRandom().nextFloat();
+                if (roll >= Math.max(0f, Math.min(1f, chance))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
-	@Override
-	public void applyEffect(LivingEntity target, DamageSource source, int entityId) {
-		int duration = (config.getEffects() != null) ? config.getEffects().getDuration() : 200;
+    @Override
+    public void applyEffect(LivingEntity target, DamageSource source, int entityId) {
+        int duration = (config.getEffects() != null) ? config.getEffects().getDuration() : 200;
 
-		ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
-		String elementKey = extractElementKey(config.getAttachmentType());
-		container.setValue(elementKey, duration);
+        ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        String elementKey = extractElementKey(config.getAttachmentType());
+        container.setValue(elementKey, duration);
 
-		// 跟踪衰减
-		ElementDecaySystem.track(target);
+        // 跟踪衰减
+        ElementDecaySystem.track(target);
 
-		// 始终同步到客户端
-			PacketDistributor.sendToAllPlayers(new ElementData(entityId, elementKey, duration));
+        // 始终同步到客户端
+        PacketDistributor.sendToAllPlayers(new ElementData(entityId, elementKey, duration));
 
-		SpellElemental.LOGGER.debug("Applied element {} to entity {} with duration {} (container)", 
-				elementKey, entityId, duration);
-	}
+        SpellElemental.LOGGER.debug("Applied element {} to entity {} with duration {} (container)",
+                elementKey, entityId, duration);
+    }
 
-	private String extractElementKey(String attachmentTypeName) {
-		if (attachmentTypeName == null) return "";
-		String s = attachmentTypeName.contains(":" ) ? attachmentTypeName.substring(attachmentTypeName.indexOf(":" ) + 1) : attachmentTypeName;
-		return s.toLowerCase();
-	}
+    private String extractElementKey(String attachmentTypeName) {
+        if (attachmentTypeName == null) return "";
+        String s = attachmentTypeName.contains(":") ? attachmentTypeName.substring(attachmentTypeName.indexOf(":") + 1) : attachmentTypeName;
+        return s.toLowerCase();
+    }
 
-	private boolean matchesPattern(String input, String pattern) {
-		if (input == null || pattern == null) {
-			return false;
-		}
-		if (!pattern.contains("*")) {
-			return input.equals(pattern);
-		}
-		String regexPattern = pattern.replace("*", ".*").replace("?", ".");
-		try {
-			return Pattern.matches(regexPattern, input);
-		} catch (Exception e) {
-			SpellElemental.LOGGER.warn("Invalid pattern: {}", pattern, e);
-			return false;
-		}
-	}
+    private boolean matchesPattern(String input, String pattern) {
+        if (input == null || pattern == null) {
+            return false;
+        }
+        if (!pattern.contains("*")) {
+            return input.equals(pattern);
+        }
+        String regexPattern = pattern.replace("*", ".*").replace("?", ".");
+        try {
+            return Pattern.matches(regexPattern, input);
+        } catch (Exception e) {
+            SpellElemental.LOGGER.warn("Invalid pattern: {}", pattern, e);
+            return false;
+        }
+    }
 
-	public UnifiedElementAttachmentConfig getConfig() {
-		return config;
-	}
+
 }

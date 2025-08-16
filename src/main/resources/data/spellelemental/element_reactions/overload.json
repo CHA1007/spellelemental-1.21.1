@@ -20,10 +20,14 @@
             "damage_multiplier": 2.75,
             "area_radius": 2.5,
             "include_self": false,
-            "damage_source": "fire",
+            "damage_source": "minecraft:in_fire",
             "priority": 0
           }
         ]
+      },
+      "reaction_conditions": {
+        "minimum_primary_amount": 1,
+        "minimum_secondary_amount": 1
       }
     },
     {
@@ -42,10 +46,14 @@
             "damage_multiplier": 2.75,
             "area_radius": 2.5,
             "include_self": false,
-            "damage_source": "fire",
+            "damage_source": "minecraft:in_fire",
             "priority": 0
           }
         ]
+      },
+      "reaction_conditions": {
+      "minimum_primary_amount": 1,
+      "minimum_secondary_amount": 1
       }
     }
   ]

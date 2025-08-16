@@ -2,7 +2,7 @@
   "reaction_id": "melt",
   "reaction_name": "融化反应",
   "description": "冰元素与火元素相遇时产生的融化反应，增幅本次伤害",
-  "priority": 100,
+  "priority": 99,
   "variants": [
     {
       "element_conditions": {

@@ -66,6 +66,40 @@ public class ElementReactionConfig {
         this.primaryConsumption = primaryConsumption;
         this.secondaryConsumption = secondaryConsumption;
     }
+
+    /**
+     * 反应后给予元素附着
+     */
+    public static class GrantElement {
+        @SerializedName("element")
+        private String element;
+
+        @SerializedName("amount")
+        private int amount = 1;
+
+        /** 0.0~1.0 触发概率，默认1.0 */
+        @SerializedName("chance")
+        private float chance = 1.0f;
+
+        /** 作用目标：target/attacker，默认 target */
+        @SerializedName("target")
+        private String target = "target";
+
+        /** 模式："refresh" 刷新为固定数值，或 "add" 在原值基础上增加。默认 "add" */
+        @SerializedName("mode")
+        private String mode = "add";
+
+        public String getElement() { return element; }
+        public void setElement(String element) { this.element = element; }
+        public int getAmount() { return amount; }
+        public void setAmount(int amount) { this.amount = amount; }
+        public float getChance() { return chance; }
+        public void setChance(float chance) { this.chance = chance; }
+        public String getTarget() { return target; }
+        public void setTarget(String target) { this.target = target; }
+        public String getMode() { return mode; }
+        public void setMode(String mode) { this.mode = mode; }
+    }
     
     // Getters and Setters
     public String getReactionId() {
@@ -195,6 +229,10 @@ public class ElementReactionConfig {
         
         @SerializedName("cooldown")
         private int cooldown;
+
+        // 反应后附着元素（数据驱动）
+        @SerializedName("grant_elements")
+        private List<GrantElement> grantElements;
         
         // Getters and Setters
         public List<ReactionEffect> getReactionEffects() {
@@ -228,6 +266,14 @@ public class ElementReactionConfig {
         public void setCooldown(int cooldown) {
             this.cooldown = cooldown;
         }
+
+        public List<GrantElement> getGrantElements() {
+            return grantElements;
+        }
+
+        public void setGrantElements(List<GrantElement> grantElements) {
+            this.grantElements = grantElements;
+        }
         
         /**
          * 获取所有效果类型
@@ -258,7 +304,7 @@ public class ElementReactionConfig {
          */
         public String getPrimaryEffectType() {
             if (hasEffects()) {
-                return reactionEffects.get(0).getEffectType();
+                return reactionEffects.getFirst().getEffectType();
             }
             return null;
         }
@@ -268,7 +314,7 @@ public class ElementReactionConfig {
          */
         public float getPrimaryDamageMultiplier() {
             if (hasEffects()) {
-                return reactionEffects.get(0).getDamageMultiplier();
+                return reactionEffects.getFirst().getDamageMultiplier();
             }
             return 1.0f;
         }
@@ -280,24 +326,52 @@ public class ElementReactionConfig {
     public static class ReactionEffect {
         @SerializedName("effect_type")
         private String effectType;
-        
+
         @SerializedName("damage_multiplier")
         private float damageMultiplier = 1.0f;
-        
+
+        /** 伤害模式：amplified / overload / fixed / fusion */
+        @SerializedName("damage_mode")
+        private String damageMode;
+
+        /** 固定伤害，damage_mode=fixed 时生效 */
+        @SerializedName("fixed_damage")
+        private Float fixedDamage;
+
+        // 区域/即时伤害通用参数
         @SerializedName("area_radius")
         private float areaRadius = 0.0f;
-        
+
         @SerializedName("include_self")
         private boolean includeSelf = false;
-        
+
         @SerializedName("damage_source")
         private String damageSource;
-        
+
         @SerializedName("priority")
         private int priority = 0;
-        
+
         @SerializedName("conditions")
         private EffectConditions conditions;
+
+        // base 选择（默认使用 tick_damage 作为 base）
+        @SerializedName("base_source")
+        private String baseSource = "tick_damage"; // tick_damage | attribute
+
+        @SerializedName("base_attribute")
+        private String baseAttribute = "minecraft:attack_damage"; // 仅 base_source=attribute 时使用
+        // ---- DOT 扩展参数（数据化） ----
+        @SerializedName("tick_damage")
+        private float tickDamage = 0.0f;
+
+        @SerializedName("interval_ticks")
+        private int intervalTicks = 20; // 默认1秒
+
+        @SerializedName("duration_ticks")
+        private int durationTicks = 0; // 0 表示无限持续
+
+        @SerializedName("check_required_each_tick")
+        private boolean checkRequiredEachTick = true; // 每tick检查 conditions.required_elements 是否满足
         
         // Getters and Setters
         public String getEffectType() {
@@ -314,6 +388,22 @@ public class ElementReactionConfig {
         
         public void setDamageMultiplier(float damageMultiplier) {
             this.damageMultiplier = damageMultiplier;
+        }
+
+        public String getDamageMode() {
+            return damageMode;
+        }
+
+        public void setDamageMode(String damageMode) {
+            this.damageMode = damageMode;
+        }
+
+        public Float getFixedDamage() {
+            return fixedDamage;
+        }
+
+        public void setFixedDamage(Float fixedDamage) {
+            this.fixedDamage = fixedDamage;
         }
         
         public float getAreaRadius() {
@@ -354,6 +444,55 @@ public class ElementReactionConfig {
         
         public void setConditions(EffectConditions conditions) {
             this.conditions = conditions;
+        }
+
+        // DOT 参数访问器
+        public float getTickDamage() {
+            return tickDamage;
+        }
+
+        public void setTickDamage(float tickDamage) {
+            this.tickDamage = tickDamage;
+        }
+
+        public int getIntervalTicks() {
+            return intervalTicks;
+        }
+
+        public void setIntervalTicks(int intervalTicks) {
+            this.intervalTicks = intervalTicks;
+        }
+
+        public int getDurationTicks() {
+            return durationTicks;
+        }
+
+        public void setDurationTicks(int durationTicks) {
+            this.durationTicks = durationTicks;
+        }
+
+        public boolean isCheckRequiredEachTick() {
+            return checkRequiredEachTick;
+        }
+
+        public void setCheckRequiredEachTick(boolean checkRequiredEachTick) {
+            this.checkRequiredEachTick = checkRequiredEachTick;
+        }
+
+        public String getBaseSource() {
+            return baseSource;
+        }
+
+        public void setBaseSource(String baseSource) {
+            this.baseSource = baseSource;
+        }
+
+        public String getBaseAttribute() {
+            return baseAttribute;
+        }
+
+        public void setBaseAttribute(String baseAttribute) {
+            this.baseAttribute = baseAttribute;
         }
     }
     
