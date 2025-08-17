@@ -4,9 +4,12 @@ import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.config.ElementReactionConfig;
+import com.chadate.spellelemental.client.network.custom.ElementData;
+import com.chadate.spellelemental.util.DamageAttachmentGuards;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * 通用 DOT（持续伤害）系统：根据 ReactionEffect 的 dot 参数进行周期性伤害结算。
+ * 通用 DOT（持续伤害）系统：
  */
 public final class DotSystem {
     private DotSystem() {}
@@ -46,7 +49,10 @@ public final class DotSystem {
         List<String> required = effect.getConditions() != null ? effect.getConditions().getRequiredElements() : null;
 
         DotInstance instance = new DotInstance(attacker, target, tickDamage, interval, duration, damageKey,
-                mode, multiplier, baseSource, baseAttribute, checkEachTick, required);
+                mode, multiplier, baseSource, baseAttribute, checkEachTick, required,
+                effect.isCheckRequiredEachTick(), // 保持原有布尔传递
+                effect.isDotAttachEnabled(), effect.getDotAttachElement(),
+                Math.max(0, effect.getDotAttachAmount()), effect.getDotAttachMax());
 
         // 简单去重：避免同目标上完全相同参数的 DOT 重复注册
         for (DotInstance existing : INSTANCES) {
@@ -78,7 +84,10 @@ public final class DotSystem {
                 : Arrays.asList(requiredElements);
 
         DotInstance instance = new DotInstance(attacker, target, tickDamage, interval, duration, damageKey,
-                mode, multiplier, baseSource, baseAttribute, checkEachTick, required);
+                mode, multiplier, baseSource, baseAttribute, checkEachTick, required,
+                checkEachTick,
+                effect.isDotAttachEnabled(), effect.getDotAttachElement(),
+                Math.max(0, effect.getDotAttachAmount()), effect.getDotAttachMax());
 
         for (DotInstance existing : INSTANCES) {
             if (existing.isSameKind(instance)) {
@@ -104,11 +113,18 @@ public final class DotSystem {
         private final String baseSource; // tick_damage | attribute
         private final String baseAttribute; // 当 attribute 时的属性键
         private final boolean checkEachTick;
+        // DOT 附着配置
+        private final boolean dotAttachEnabled;
+        private final String dotAttachElement;
+        private final int dotAttachAmount;
+        private final int dotAttachMax;
         private final Set<String> requiredElements;
 
         DotInstance(LivingEntity attacker, LivingEntity target, float tickDamage, int interval, int duration, String damageKey,
                     String damageMode, float damageMultiplier, String baseSource, String baseAttribute,
-                    boolean checkEachTick, List<String> requiredElements) {
+                    boolean checkEachTick, List<String> requiredElements,
+                    boolean dummyKeepCompat,
+                    boolean dotAttachEnabled, String dotAttachElement, int dotAttachAmount, int dotAttachMax) {
             this.attacker = attacker;
             this.target = target;
             this.tickDamage = tickDamage;
@@ -123,6 +139,10 @@ public final class DotSystem {
             this.baseAttribute = (baseAttribute == null || baseAttribute.isEmpty()) ? "minecraft:attack_damage" : baseAttribute;
             this.checkEachTick = checkEachTick;
             this.requiredElements = requiredElements == null ? Collections.emptySet() : new HashSet<>(requiredElements);
+            this.dotAttachEnabled = dotAttachEnabled;
+            this.dotAttachElement = dotAttachElement;
+            this.dotAttachAmount = Math.max(0, dotAttachAmount);
+            this.dotAttachMax = dotAttachMax;
         }
 
         boolean isInvalid() {
@@ -158,7 +178,6 @@ public final class DotSystem {
         private boolean meetsRequiredElements() {
             if (requiredElements.isEmpty()) return true;
             ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
-            if (container == null) return false;
             Map<String, Integer> snap = container.snapshot();
             for (String key : requiredElements) {
                 int v = snap.getOrDefault(key, 0);
@@ -178,44 +197,68 @@ public final class DotSystem {
                 }
             } catch (Exception ignored) {}
 
-            String mode = (this.damageMode == null || this.damageMode.isEmpty()) ? "default" : this.damageMode.toLowerCase();
-            float mult = this.damageMultiplier <= 0 ? 1.0f : this.damageMultiplier;
-            float finalDamage;
-            switch (mode) {
-                case "fixed":
-                    finalDamage = Math.max(0f, baseDamage); // fixed 情况使用 base 作为固定值
-                    break;
-                case "amplified":
-                    finalDamage = baseDamage * mult * com.chadate.spellelemental.event.element.ReactionInjuryFormula.AmplifiedReactionBonus(astral);
-                    break;
-                case "overload":
-                    finalDamage = com.chadate.spellelemental.event.element.ReactionInjuryFormula.CalculateOverloadDamage(baseDamage, mult, astral);
-                    break;
-                case "fusion":
-                    // 聚变按用户要求复用超载公式
-                    finalDamage = com.chadate.spellelemental.event.element.ReactionInjuryFormula.CalculateOverloadDamage(baseDamage, mult, astral);
-                    break;
-                default:
-                    finalDamage = baseDamage * mult;
-                    break;
-            }
+            float finalDamage = getFinalDamage(baseDamage, astral);
             // 输出 DOT 伤害日志，包含伤害源
             try {
                 String msgId = ds.getMsgId();
                 SpellElemental.LOGGER.info("DOT tick -> target={}, damage={}, sourceKey={}, damageTypeMsgId={}",
                         target.getName().getString(), finalDamage, this.damageKey, msgId);
             } catch (Exception ignored) {}
-            target.hurt(ds, finalDamage);
+            DamageAttachmentGuards.runAsNonAttachable(() -> target.hurt(ds, finalDamage));
+
+            // 按配置附着元素到目标，并同步客户端
+            if (dotAttachEnabled && dotAttachAmount > 0 && dotAttachElement != null && !dotAttachElement.isEmpty()) {
+                try {
+                    ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
+                    var snap = container.snapshot();
+                    int cur = snap.getOrDefault(dotAttachElement, 0);
+                    int capped = (dotAttachMax > 0) ? Math.min(cur + dotAttachAmount, dotAttachMax) : cur + dotAttachAmount;
+                    if (capped != cur) {
+                        container.setValue(dotAttachElement, capped);
+                        // 广播单键更新（沿用 ElementData 的单值消息语义：第三参数作为数值）
+                        PacketDistributor.sendToAllPlayers(new ElementData(target.getId(), dotAttachElement, capped));
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        private float getFinalDamage(float baseDamage, float astral) {
+            String mode = (this.damageMode == null || this.damageMode.isEmpty()) ? "default" : this.damageMode.toLowerCase();
+            float mult = this.damageMultiplier <= 0 ? 1.0f : this.damageMultiplier;
+            return switch (mode) {
+                case "fixed" -> Math.max(0f, baseDamage); // fixed 情况使用 base 作为固定值
+                case "amplified" -> baseDamage * mult * ReactionInjuryFormula.AmplifiedReactionBonus(astral);
+                case "fusion" -> ReactionInjuryFormula.CalculateOverloadDamage(baseDamage, mult, astral);
+                default -> baseDamage * mult;
+            };
         }
 
         private float resolveBaseDamage() {
             if ("attribute".equalsIgnoreCase(this.baseSource)) {
                 if (attacker != null) {
                     try {
-                        // 仅支持 minecraft:attack_damage
-                        if ("minecraft:attack_damage".equalsIgnoreCase(this.baseAttribute)) {
-                            return (float) attacker.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                        // 支持命名空间 Attribute
+                        String keyStr = (this.baseAttribute == null || this.baseAttribute.isEmpty())
+                                ? "minecraft:attack_damage"
+                                : this.baseAttribute;
+
+                        // 允许简写（无命名空间时默认 minecraft）
+                        ResourceLocation id = keyStr.contains(":")
+                                ? ResourceLocation.tryParse(keyStr)
+                                : ResourceLocation.fromNamespaceAndPath("minecraft", keyStr);
+
+                        if (id != null) {
+                            var reg = attacker.level().registryAccess().registryOrThrow(Registries.ATTRIBUTE);
+                            ResourceKey<net.minecraft.world.entity.ai.attributes.Attribute> rkey =
+                                    ResourceKey.create(Registries.ATTRIBUTE, id);
+                            var holderOpt = reg.getHolder(rkey);
+                            if (holderOpt.isPresent()) {
+                                return (float) attacker.getAttributeValue(holderOpt.get());
+                            }
                         }
+                        // 如果解析失败则退回到原版攻击力
+                        return (float) attacker.getAttributeValue(
+                                net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
                     } catch (Exception ignored) {}
                 }
                 return 0f;
@@ -254,7 +297,11 @@ public final class DotSystem {
                     && Objects.equals(other.damageMode, this.damageMode)
                     && other.damageMultiplier == this.damageMultiplier
                     && Objects.equals(other.baseSource, this.baseSource)
-                    && Objects.equals(other.baseAttribute, this.baseAttribute);
+                    && Objects.equals(other.baseAttribute, this.baseAttribute)
+                    && this.dotAttachEnabled == other.dotAttachEnabled
+                    && Objects.equals(this.dotAttachElement, other.dotAttachElement)
+                    && this.dotAttachAmount == other.dotAttachAmount
+                    && this.dotAttachMax == other.dotAttachMax;
         }
     }
 }

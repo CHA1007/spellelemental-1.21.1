@@ -372,6 +372,20 @@ public class ElementReactionConfig {
 
         @SerializedName("check_required_each_tick")
         private boolean checkRequiredEachTick = true; // 每tick检查 conditions.required_elements 是否满足
+
+        // DOT 附着元素（数据驱动）
+        @SerializedName("dot_attach_enabled")
+        private boolean dotAttachEnabled = false;
+
+        @SerializedName("dot_attach_element")
+        private String dotAttachElement;
+
+        @SerializedName("dot_attach_amount")
+        private int dotAttachAmount = 0;
+
+        /** 可选上限（<=0 表示不限制） */
+        @SerializedName("dot_attach_max")
+        private int dotAttachMax = 0;
         
         // Getters and Setters
         public String getEffectType() {
@@ -494,6 +508,16 @@ public class ElementReactionConfig {
         public void setBaseAttribute(String baseAttribute) {
             this.baseAttribute = baseAttribute;
         }
+
+        // DOT 附着配置访问器
+        public boolean isDotAttachEnabled() { return dotAttachEnabled; }
+        public void setDotAttachEnabled(boolean dotAttachEnabled) { this.dotAttachEnabled = dotAttachEnabled; }
+        public String getDotAttachElement() { return dotAttachElement; }
+        public void setDotAttachElement(String dotAttachElement) { this.dotAttachElement = dotAttachElement; }
+        public int getDotAttachAmount() { return dotAttachAmount; }
+        public void setDotAttachAmount(int dotAttachAmount) { this.dotAttachAmount = dotAttachAmount; }
+        public int getDotAttachMax() { return dotAttachMax; }
+        public void setDotAttachMax(int dotAttachMax) { this.dotAttachMax = dotAttachMax; }
     }
     
     /**

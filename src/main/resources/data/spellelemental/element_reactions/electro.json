@@ -20,9 +20,10 @@
             "damage_mode": "fusion",
             "damage_multiplier": 2.0,
             "base_source": "attribute",
-            "base_attribute": "minecraft:attack_damage",
+            "base_attribute": "minecraft:generic.attack_damage",
             "interval_ticks": 10,
             "duration_ticks": 0,
+            "dot_attach_enabled": false,
             "priority": 0,
             "damage_source": "irons_spellbooks:lightning_magic"
           }

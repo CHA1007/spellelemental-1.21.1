@@ -7,7 +7,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 
 public class HealingEventHandler {
-    @SubscribeEvent
     public static void onLivingHeal(LivingHealEvent event) {
         LivingEntity entity = event.getEntity();
 

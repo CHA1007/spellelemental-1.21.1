@@ -16,11 +16,11 @@
       "damage_effects": {
         "reaction_effects": [
           {
-            "effect_type": "overload_reaction",
+            "effect_type": "area_damage",
             "damage_multiplier": 2.75,
             "area_radius": 2.5,
             "include_self": false,
-            "damage_source": "minecraft:in_fire",
+            "damage_source": "irons_spellbooks:fire_magic",
             "priority": 0
           }
         ]
@@ -42,11 +42,11 @@
       "damage_effects": {
         "reaction_effects": [
           {
-            "effect_type": "overload_reaction",
+            "effect_type": "area_damage",
             "damage_multiplier": 2.75,
             "area_radius": 2.5,
             "include_self": false,
-            "damage_source": "minecraft:in_fire",
+            "damage_source": "irons_spellbooks:fire_magic",
             "priority": 0
           }
         ]

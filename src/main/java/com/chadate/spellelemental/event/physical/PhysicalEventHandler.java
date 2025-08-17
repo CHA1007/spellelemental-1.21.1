@@ -3,13 +3,13 @@ package com.chadate.spellelemental.event.physical;
 import com.chadate.spellelemental.attribute.ModAttributes;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 public class PhysicalEventHandler {
 
-    @SubscribeEvent
     public static void applyPhysicalBonus(LivingDamageEvent.Pre event) {
         LivingEntity target = event.getEntity();
         DamageSource source = event.getSource();
@@ -26,7 +26,8 @@ public class PhysicalEventHandler {
             }
             
             // 安全获取目标的物理抗性
-            var physicalResistAttr = target.getAttribute(ModAttributes.PHYSICAL_DAMAGE_RESIST);
+
+            AttributeInstance physicalResistAttr = target.getAttribute(ModAttributes.PHYSICAL_DAMAGE_RESIST);
             if (physicalResistAttr != null) {
                 double physicalResist = physicalResistAttr.getValue();
                 float finalDamage = (float) (originalDamage * physicalBoost * calculatePhysicalResistMultiplier(physicalResist));

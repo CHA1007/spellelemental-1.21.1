@@ -7,6 +7,7 @@ import com.chadate.spellelemental.element.reaction.data.ElementReactionDataLoade
 import com.chadate.spellelemental.event.element.ReactionEvent;
 import com.chadate.spellelemental.event.element.ReactionInjuryFormula;
 import com.chadate.spellelemental.element.attachment.attack.ElementAttachmentRegistry;
+import com.chadate.spellelemental.util.DamageAttachmentGuards;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -297,8 +298,8 @@ public class ElementReactionHandler {
 				SpellElemental.LOGGER.info("增幅前伤害: {}", previousDamage);
 				SpellElemental.LOGGER.info("增幅后伤害: {}", currentDamage);
 				SpellElemental.LOGGER.info("伤害增幅: {} -> {} (增加 {})", previousDamage, currentDamage, currentDamage - previousDamage);
-			} else if ("overload_reaction".equals(effectType) || "area_damage".equals(effectType)) {
-				// 聚变/范围效果：造成范围伤害，不修改当前事件伤害
+			} else if ("area_damage".equals(effectType)) {
+				// 范围效果：造成范围伤害，不修改当前事件伤害
 				float radius = effect.getAreaRadius() > 0 ? effect.getAreaRadius() : 3.0f;
 				boolean includeSelf = effect.isIncludeSelf();
 				String damageSource = effect.getDamageSource();
@@ -339,7 +340,7 @@ public class ElementReactionHandler {
 				SpellElemental.LOGGER.info("反应倍率: {}", effectMultiplier);
 				SpellElemental.LOGGER.info("直接伤害: {}", effectDamage);
 				
-				target.hurt(ds, effectDamage);
+				DamageAttachmentGuards.runAsNonAttachable(() -> target.hurt(ds, effectDamage));
 			}
 		}
 		
@@ -455,112 +456,99 @@ public class ElementReactionHandler {
 	}
 	
 
-	
-
-	
-
-
 	private static void applyAreaDamage(LivingEntity target, float damage, float radius) {
-		Level level = target.level();
-		Vec3 center = target.position();
-		AABB area = new AABB(center.x - radius, center.y - radius, center.z - radius,
-						center.x + radius, center.y + radius, center.z + radius);
-		
-		List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, area);
-		
-		for (LivingEntity entity : entities) {
-			if (entity.isAlive() && !entity.isSpectator() && entity != target) {
-				entity.hurt(entity.damageSources().magic(), damage);
-			}
-		}
-	}
+     Level level = target.level();
+     Vec3 center = target.position();
+     AABB area = new AABB(center.x - radius, center.y - radius, center.z - radius,
+                     center.x + radius, center.y + radius, center.z + radius);
+     
+     List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, area);
+     
+     for (LivingEntity entity : entities) {
+         if (entity.isAlive() && !entity.isSpectator() && entity != target) {
+             DamageAttachmentGuards.runAsNonAttachable(() -> entity.hurt(entity.damageSources().magic(), damage));
+         }
+     }
+ }
 
-	private static void applyAreaDamageWithSelfOption(LivingEntity attacker, LivingEntity target, float damage, float radius, boolean includeSelf, String damageTypeKey) {
-		Level level = target.level();
-		Vec3 center = target.position();
-		AABB area = new AABB(center.x - radius, center.y - radius, center.z - radius,
-						center.x + radius, center.y + radius, center.z + radius);
-		
-		List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, area);
-		
-		for (LivingEntity entity : entities) {
-			// 跳过非存活实体和旁观者
-			if (!entity.isAlive() || entity.isSpectator()) {
-				continue;
-			}
-			
-			// 处理目标实体（被攻击者）
-			if (entity == target) {
-				if (includeSelf) {
-					DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
-					entity.hurt(ds, damage);
-				}
-				continue;
-			}
-			
-			// 跳过攻击者，避免自伤
-			if (entity == attacker) {
-				continue;
-			}
-			
-			// 对其他范围内的实体造成伤害
-			DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
-				entity.hurt(ds, damage);
-		}
-	}
-	
-	private static void applyStatusEffect(LivingEntity target, ElementReactionConfig.StatusEffect statusEffect) {
-		SpellElemental.LOGGER.debug("应用状态效果: {} 到实体 {}", 
-			statusEffect.getEffectId(), target.getName().getString());
-	}
-	
-	private static void playVisualEffects(LivingEntity target, ElementReactionConfig config) {
-		if (config.getVisualEffects() != null) {
-			SpellElemental.LOGGER.debug("播放视觉效果: {} 到实体 {}", 
-				config.getVisualEffects().getScreenEffect(), target.getName().getString());
-		}
-	}
-	
-	private static void playSoundEffects(LivingEntity target, ElementReactionConfig config) {
-		if (config.getSoundEffects() != null) {
-			SpellElemental.LOGGER.debug("播放音效: {} 到实体 {}", 
-				config.getSoundEffects().getReactionSound(), target.getName().getString());
-		}
-	}
-	
-	private static void spawnParticleEffects(LivingEntity target, ElementReactionConfig config) {
-		if (config.getParticleEffects() != null) {
-			SpellElemental.LOGGER.debug("生成粒子效果: {} 在实体 {} 位置", 
-				config.getParticleEffects().getParticleType(), target.getName().getString());
-		}
-	}
-	
-	private static boolean checkEnvironmentalConditions(LivingEntity target, ElementReactionConfig config) {
-		if (config.getConditions() == null) return true;
-		if (config.getConditions().getEnvironmentalRequirements() == null ||
-			config.getConditions().getEnvironmentalRequirements().isEmpty()) {
-			return true;
-		}
-		return true;
-	}
-	
-	private static int getElementAmount(LivingEntity entity, String baseElement) {
-		try {
-			return ReactionEvent.getElementAttachment(entity, baseElement);
-		} catch (Exception e) {
-			return 0;
-		}
-	}
-	
-	private static void setElementAmount(LivingEntity entity, String baseElement, int amount) {
-		try {
-			ReactionEvent.setElementAttachment(entity, baseElement, amount);
-		} catch (Exception e) {
-			SpellElemental.LOGGER.error("设置元素数量失败: {} -> {}", baseElement, amount, e);
-		}
-	}
-	
-	private static void removeElementStatus(LivingEntity entity, String baseElement) {
-		setElementAmount(entity, baseElement, 0);
-	}
-} 
+ private static void applyAreaDamageWithSelfOption(LivingEntity attacker, LivingEntity target, float damage, float radius, boolean includeSelf, String damageTypeKey) {
+     Level level = target.level();
+     Vec3 center = target.position();
+     AABB area = new AABB(center.x - radius, center.y - radius, center.z - radius,
+                     center.x + radius, center.y + radius, center.z + radius);
+
+     List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, area);
+
+     for (LivingEntity entity : entities) {
+         // 跳过非存活实体和旁观者
+         if (!entity.isAlive() || entity.isSpectator()) {
+             continue;
+         }
+         // 处理目标实体（被攻击者）
+         if (entity == target) {
+             if (includeSelf) {
+                 DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
+                 DamageAttachmentGuards.runAsNonAttachable(() -> entity.hurt(ds, damage));
+             }
+             continue;
+         }
+         // 跳过攻击者，避免自伤
+         if (entity == attacker) {
+             continue;
+         }
+         // 对其他范围内的实体造成伤害
+         DamageSource ds = resolveAreaDamageSource(attacker, entity, damageTypeKey);
+         DamageAttachmentGuards.runAsNonAttachable(() -> entity.hurt(ds, damage));
+     }
+ }
+
+ private static void playVisualEffects(LivingEntity target, ElementReactionConfig config) {
+     if (config.getVisualEffects() != null) {
+         SpellElemental.LOGGER.debug("播放视觉效果: {} 到实体 {}",
+             config.getVisualEffects().getScreenEffect(), target.getName().getString());
+     }
+ }
+
+ private static void playSoundEffects(LivingEntity target, ElementReactionConfig config) {
+     if (config.getSoundEffects() != null) {
+         SpellElemental.LOGGER.debug("播放音效: {} 到实体 {}",
+             config.getSoundEffects().getReactionSound(), target.getName().getString());
+     }
+ }
+
+ private static void spawnParticleEffects(LivingEntity target, ElementReactionConfig config) {
+     if (config.getParticleEffects() != null) {
+         SpellElemental.LOGGER.debug("生成粒子效果: {} 在实体 {} 位置",
+             config.getParticleEffects().getParticleType(), target.getName().getString());
+     }
+ }
+
+ private static boolean checkEnvironmentalConditions(LivingEntity target, ElementReactionConfig config) {
+     if (config.getConditions() == null) return true;
+     if (config.getConditions().getEnvironmentalRequirements() == null ||
+         config.getConditions().getEnvironmentalRequirements().isEmpty()) {
+         return true;
+     }
+     return true;
+ }
+
+ private static int getElementAmount(LivingEntity entity, String baseElement) {
+     try {
+         return ReactionEvent.getElementAttachment(entity, baseElement);
+     } catch (Exception e) {
+         return 0;
+     }
+ }
+
+ private static void setElementAmount(LivingEntity entity, String baseElement, int amount) {
+     try {
+         ReactionEvent.setElementAttachment(entity, baseElement, amount);
+     } catch (Exception e) {
+         SpellElemental.LOGGER.error("设置元素数量失败: {} -> {}", baseElement, amount, e);
+     }
+ }
+
+ private static void removeElementStatus(LivingEntity entity, String baseElement) {
+     setElementAmount(entity, baseElement, 0);
+ }
+}

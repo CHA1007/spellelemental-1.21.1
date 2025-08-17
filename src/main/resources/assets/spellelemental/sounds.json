@@ -1,0 +1,10 @@
+{
+  "spell_crit": {
+    "subtitle": "subtitles.spellelemental.spell_crit",
+    "sounds": [
+      {
+        "name": "spellelemental:spell_crit"
+      }
+    ]
+  }
+}

@@ -20,9 +20,13 @@
             "damage_mode": "fusion",
             "damage_multiplier": 0.25,
             "base_source": "attribute",
-            "base_attribute": "minecraft:attack_damage",
-            "interval_ticks": 5,
+            "base_attribute": "minecraft:generic.attack_damage",
+            "interval_ticks": 3,
             "duration_ticks": 0,
+            "dot_attach_enabled": true,
+            "dot_attach_element": "fire_element",
+            "dot_attach_amount": 200,
+            "dot_attach_max": 200,
             "priority": 0,
             "damage_source": "irons_spellbooks:fire_magic"
           }

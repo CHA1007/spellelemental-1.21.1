@@ -7,6 +7,9 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.event.CommandEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class DebugCommand {
@@ -29,4 +32,8 @@ public final class DebugCommand {
 		}
 		return Command.SINGLE_SUCCESS;
 	}
+
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
+        DebugCommand.register(event.getDispatcher());
+    }
 } 

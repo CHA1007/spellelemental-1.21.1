@@ -244,6 +244,19 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
         if (effectObj.has("base_attribute")) {
             effect.setBaseAttribute(effectObj.get("base_attribute").getAsString());
         }
+        // DOT 附着元素配置
+        if (effectObj.has("dot_attach_enabled")) {
+            effect.setDotAttachEnabled(effectObj.get("dot_attach_enabled").getAsBoolean());
+        }
+        if (effectObj.has("dot_attach_element")) {
+            effect.setDotAttachElement(effectObj.get("dot_attach_element").getAsString());
+        }
+        if (effectObj.has("dot_attach_amount")) {
+            effect.setDotAttachAmount(effectObj.get("dot_attach_amount").getAsInt());
+        }
+        if (effectObj.has("dot_attach_max")) {
+            effect.setDotAttachMax(effectObj.get("dot_attach_max").getAsInt());
+        }
         
         // 处理效果条件
         if (effectObj.has("conditions")) {

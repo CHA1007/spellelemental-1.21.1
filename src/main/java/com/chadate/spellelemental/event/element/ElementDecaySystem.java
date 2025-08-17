@@ -3,7 +3,6 @@ package com.chadate.spellelemental.event.element;
 import com.chadate.spellelemental.client.network.custom.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -33,14 +32,13 @@ public final class ElementDecaySystem {
             ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
             Map<String, Integer> snap = container.snapshot();
             if (snap.isEmpty()) continue;
-            boolean hasAny = false;
             for (Map.Entry<String, Integer> e : snap.entrySet()) {
                 String key = e.getKey();
                 int value = e.getValue();
                 if (value <= 0) continue;
-                int newValue = value - 1;
-                container.setValue(key, newValue);
-                if (newValue == 0) {
+                value -= 1;
+                container.setValue(key, value);
+                if (value == 0) {
                     PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, 0));
                 }
             }
