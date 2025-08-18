@@ -4,16 +4,17 @@ package com.chadate.spellelemental.element.attachment.attack;
 import com.chadate.spellelemental.client.network.custom.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
+import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.element.attachment.config.UnifiedElementAttachmentConfig;
 import com.chadate.spellelemental.element.attachment.data.EnvironmentalAttachmentRegistry;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import com.chadate.spellelemental.util.DamageAttachmentGuards;
+import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -21,19 +22,18 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.List;
 
 public class ElementEventHandler {
-    public static void handleElementAttachment(LivingDamageEvent.Pre event) {
+    public static void handleElementAttachment(SpellDamageEvent event) {
         LivingEntity target = event.getEntity();
-        DamageSource source = event.getSource();
+        DamageSource spellDamageSource = event.getSpellDamageSource();
         int entityId = target.getId();
-        float damageAmount = event.getNewDamage();
+        float damageAmount = event.getAmount();
         // 统一的“不可附着伤害”早退：当反应伤害或其他标记的伤害到达时，不触发受伤即附着
         if (DamageAttachmentGuards.isNonAttachable()) {
             return;
         }
-        ElementAttachmentRegistry.handleAttachment(target, source, entityId, damageAmount);
+        ElementAttachmentRegistry.handleAttachment(target, spellDamageSource, entityId, damageAmount);
 
     }
-    private ElementEventHandler() {}
 
     public static void handleEnvironmentalAttachment(ServerTickEvent.Post event) {
         List<UnifiedElementAttachmentConfig> configs = EnvironmentalAttachmentRegistry.getAll();
@@ -60,7 +60,8 @@ public class ElementEventHandler {
 
     private static void applyAttachment(LivingEntity entity, UnifiedElementAttachmentConfig cfg) {
         ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
-        int duration = cfg.getEffects() != null ? cfg.getEffects().getDuration() : 200;
+        // 从服务端配置读取统一附着量（默认200）
+        int duration = ServerConfig.ELEMENT_ATTACHMENT_DEFAULT.get();
         // 仅使用 element_id 作为容器键（小写）。若缺失则跳过写入。
         String elementKey = cfg.getElementId();
         if (elementKey == null || elementKey.isBlank()) {

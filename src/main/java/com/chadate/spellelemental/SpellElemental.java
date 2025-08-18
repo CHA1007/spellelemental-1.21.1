@@ -3,6 +3,8 @@ package com.chadate.spellelemental;
 import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.command.DebugCommand;
 import com.chadate.spellelemental.data.SpellAttachments;
+import com.chadate.spellelemental.config.ClientConfig;
+import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.element.attachment.attack.ElementEventHandler;
 import com.chadate.spellelemental.element.reaction.runtime.ElementReactionHandler;
 import com.chadate.spellelemental.element.reaction.data.ElementReactionDataRegistry;
@@ -11,10 +13,15 @@ import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import com.chadate.spellelemental.event.heal.HealingEventHandler;
 import com.chadate.spellelemental.event.physical.PhysicalEventHandler;
 import com.chadate.spellelemental.sound.ModSounds;
+import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
+import io.redspace.ironsspellbooks.api.events.SpellPreCastEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +31,7 @@ public class SpellElemental {
     public static final String MODID = "spellelemental";
     public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
 
-    public SpellElemental(IEventBus modEventBus) {
+    public SpellElemental(IEventBus modEventBus, ModContainer modContainer) {
         ModAttributes.register(modEventBus);
         SpellAttachments.register(modEventBus);
         ModSounds.register(modEventBus);
@@ -40,6 +47,8 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(HealingEventHandler::onLivingHeal);
         NeoForge.EVENT_BUS.addListener(ElementDecaySystem::elementDecay);
         NeoForge.EVENT_BUS.addListener(DebugCommand::onRegisterCommands);
-    }
 
+        modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, String.format("%s-client.toml", SpellElemental.MODID));
+        modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC, String.format("%s-server.toml", SpellElemental.MODID));
+    }
 }

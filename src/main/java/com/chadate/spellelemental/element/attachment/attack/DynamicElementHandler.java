@@ -3,6 +3,7 @@ package com.chadate.spellelemental.element.attachment.attack;
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
+import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.element.attachment.config.UnifiedElementAttachmentConfig;
 import com.chadate.spellelemental.client.network.custom.ElementData;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
@@ -52,7 +53,8 @@ public record DynamicElementHandler(UnifiedElementAttachmentConfig config) imple
 
     @Override
     public void applyEffect(LivingEntity target, DamageSource source, int entityId) {
-        int duration = (config.getEffects() != null) ? config.getEffects().getDuration() : 200;
+        // 从服务端配置读取附着量（默认200，后续可按法术ID覆盖）
+        int duration = ServerConfig.ELEMENT_ATTACHMENT_DEFAULT.get();
 
         ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
         // 统一容器键：仅使用 element_id（小写）。若缺失则不进行写入。
