@@ -55,8 +55,17 @@ public record DynamicElementHandler(UnifiedElementAttachmentConfig config) imple
         int duration = (config.getEffects() != null) ? config.getEffects().getDuration() : 200;
 
         ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
-        String elementKey = extractElementKey(config.getAttachmentType());
+        // 统一容器键：仅使用 element_id（小写）。若缺失则不进行写入。
+        String elementKey = config.getElementId();
+        if (elementKey == null || elementKey.isBlank()) {
+            SpellElemental.LOGGER.debug("Skip applying element: element_id is missing for entity {}", entityId);
+            return;
+        }
+        elementKey = elementKey.toLowerCase();
         container.setValue(elementKey, duration);
+        // 记录最近附着时间（同体反应方向判定）
+        long gameTime = target.level().getGameTime();
+        container.markApplied(elementKey, gameTime);
 
         // 跟踪衰减
         ElementDecaySystem.track(target);
@@ -68,11 +77,7 @@ public record DynamicElementHandler(UnifiedElementAttachmentConfig config) imple
                 elementKey, entityId, duration);
     }
 
-    private String extractElementKey(String attachmentTypeName) {
-        if (attachmentTypeName == null) return "";
-        String s = attachmentTypeName.contains(":") ? attachmentTypeName.substring(attachmentTypeName.indexOf(":") + 1) : attachmentTypeName;
-        return s.toLowerCase();
-    }
+    
 
     private boolean matchesPattern(String input, String pattern) {
         if (input == null || pattern == null) {

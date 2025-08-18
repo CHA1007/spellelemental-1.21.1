@@ -23,7 +23,7 @@ public final class ElementDecaySystem {
         }
     }
 
-    public static void onServerTick(ServerTickEvent.Post event) {
+    public static void elementDecay(ServerTickEvent.Post event) {
         event.getServer().overworld();
         if (TRACKED.isEmpty()) return;
 

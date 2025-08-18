@@ -4,9 +4,10 @@ import com.chadate.spellelemental.attribute.ModAttributes;
 import com.chadate.spellelemental.command.DebugCommand;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.attachment.attack.ElementEventHandler;
+import com.chadate.spellelemental.element.reaction.runtime.ElementReactionHandler;
+import com.chadate.spellelemental.element.reaction.data.ElementReactionDataRegistry;
 import com.chadate.spellelemental.event.crit.CritEventHandler;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
-import com.chadate.spellelemental.event.element.DotSystem;
 import com.chadate.spellelemental.event.heal.HealingEventHandler;
 import com.chadate.spellelemental.event.physical.PhysicalEventHandler;
 import com.chadate.spellelemental.sound.ModSounds;
@@ -30,12 +31,14 @@ public class SpellElemental {
 
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, CritEventHandler::applyCritBonus);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, PhysicalEventHandler::applyPhysicalBonus);
-        NeoForge.EVENT_BUS.addListener(ElementEventHandler::handleElementAttachment);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, ElementEventHandler::handleElementAttachment);
         NeoForge.EVENT_BUS.addListener(ElementEventHandler::handleEnvironmentalAttachment);
+        NeoForge.EVENT_BUS.addListener(ElementReactionHandler::damageTypeReaction);
+        NeoForge.EVENT_BUS.addListener(ElementReactionHandler::tickTypeReaction);
+        NeoForge.EVENT_BUS.addListener(ElementReactionDataRegistry::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(ElementEventHandler::onStartTracking);
         NeoForge.EVENT_BUS.addListener(HealingEventHandler::onLivingHeal);
-        NeoForge.EVENT_BUS.addListener(ElementDecaySystem::onServerTick);
-        NeoForge.EVENT_BUS.addListener(DotSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(ElementDecaySystem::elementDecay);
         NeoForge.EVENT_BUS.addListener(DebugCommand::onRegisterCommands);
     }
 

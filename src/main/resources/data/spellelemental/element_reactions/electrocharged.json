@@ -1,0 +1,18 @@
+{
+  "reaction_id": "electrocharged",
+  "trigger_type": "tick",
+  "interval": 5,
+  "requirements": { "water": 1, "lightning": 1 },
+  "consume": { "water": 40, "lightning": 40 },
+  "effects": {
+    "damage": [
+      {
+        "type": "extra",
+        "multiplier": 2,
+        "formula": "CalculateOverloadDamage",
+        "damage_type": "irons_spellbooks:lightning_magic",
+        "attach_element": false
+      }
+    ]
+  }
+}

@@ -1,54 +1,28 @@
 {
   "reaction_id": "melt",
-  "reaction_name": "融化反应",
-  "description": "冰元素与火元素相遇时产生的融化反应，增幅本次伤害",
-  "priority": 99,
-  "variants": [
-    {
-      "element_conditions": {
-        "primary_element": "ice_element",
-        "secondary_element": "fire_element"
-      },
-      "element_consumption": {
-        "primary_consumption": 200,
-        "secondary_consumption": 100
-      },
-      "damage_effects": {
-        "reaction_effects": [
+  "trigger_type": "damage",
+  "ordered": [
+    { "source": "fire", "target": "ice",  "consume": { "source": 200, "target": 200 },
+      "effects": {
+        "damage": [
           {
-            "effect_type": "amplified_reaction",
-            "damage_multiplier": 1.5,
-            "priority": 10
+            "type": "damage_amplify",
+            "multiplier": 2.0,
+            "formula": "AmplifiedReactionBonus"
           }
         ]
-      },
-      "reaction_conditions": {
-        "minimum_primary_amount": 1,
-        "minimum_secondary_amount": 1
       }
     },
-    {
-      "element_conditions": {
-        "primary_element": "fire_element",
-        "secondary_element": "ice_element"
-      },
-      "element_consumption": {
-        "primary_consumption": 200,
-        "secondary_consumption": 200
-      },
-      "damage_effects": {
-        "reaction_effects": [
-          {
-            "effect_type": "amplified_reaction",
-            "damage_multiplier": 2.0,
-            "priority": 10
-          }
-        ]
-      },
-      "reaction_conditions": {
-        "minimum_primary_amount": 1,
-        "minimum_secondary_amount": 1
-      }
+    { "source": "ice",  "target": "fire", "consume": { "source": 200, "target": 100 },
+      "effects": {
+      "damage": [
+        {
+          "type": "damage_amplify",
+          "multiplier": 1.5,
+          "formula": "AmplifiedReactionBonus"
+        }
+      ]
+     }
     }
   ]
-} 
+}

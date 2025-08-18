@@ -56,13 +56,12 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
                     continue;
                 }
                 
-                // 记录图标（如果提供）
+                // 记录图标/粒子资源到 element_id（与容器键一致）
                 if (config.getVisual() != null && config.getVisual().getIcon() != null) {
-                    UnifiedElementAttachmentAssets.setIcon(config.getAttachmentType(), config.getVisual().getIcon());
+                    UnifiedElementAttachmentAssets.setIcon(config.getElementId(), config.getVisual().getIcon());
                 }
-                // 记录粒子效果键（如果提供）
                 if (config.getVisual() != null && config.getVisual().getParticleEffect() != null) {
-                    UnifiedElementAttachmentAssets.setParticleEffect(config.getAttachmentType(), config.getVisual().getParticleEffect());
+                    UnifiedElementAttachmentAssets.setParticleEffect(config.getElementId(), config.getVisual().getParticleEffect());
                 }
                 
                 // 根据类型分发到对应的处理器

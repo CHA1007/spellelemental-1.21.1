@@ -1,60 +1,38 @@
 {
   "reaction_id": "overload",
-  "reaction_name": "超载反应",
-  "description": "火与雷相遇产生的超载反应，造成范围火焰伤害",
-  "priority": 100,
-  "variants": [
-    {
-      "element_conditions": {
-        "primary_element": "fire_element",
-        "secondary_element": "lightning_element"
-      },
-      "element_consumption": {
-        "primary_consumption": 200,
-        "secondary_consumption": 200
-      },
-      "damage_effects": {
-        "reaction_effects": [
+  "trigger_type": "damage",
+  "ordered": [
+    { "source": "fire", "target": "lightning",  "consume": { "source": 200, "target": 200 },
+      "effects": {
+        "damage": [
           {
-            "effect_type": "area_damage",
-            "damage_multiplier": 2.75,
-            "area_radius": 2.5,
-            "include_self": false,
-            "damage_source": "irons_spellbooks:fire_magic",
-            "priority": 0
+            "type": "aoe",
+            "multiplier": 0.75,
+            "formula": "CalculateOverloadDamage",
+            "radius": 1.5,
+            "damage_type": "irons_spellbooks:fire_magic",
+            "attach_element": false,
+            "damage_attacker": false,
+            "damage_victim": true
           }
         ]
-      },
-      "reaction_conditions": {
-        "minimum_primary_amount": 1,
-        "minimum_secondary_amount": 1
       }
     },
-    {
-      "element_conditions": {
-        "primary_element": "lightning_element",
-        "secondary_element": "fire_element"
-      },
-      "element_consumption": {
-        "primary_consumption": 200,
-        "secondary_consumption": 200
-      },
-      "damage_effects": {
-        "reaction_effects": [
+    { "source": "lightning",  "target": "fire", "consume": { "source": 200, "target": 200 },
+      "effects": {
+        "damage": [
           {
-            "effect_type": "area_damage",
-            "damage_multiplier": 2.75,
-            "area_radius": 2.5,
-            "include_self": false,
-            "damage_source": "irons_spellbooks:fire_magic",
-            "priority": 0
+            "type": "aoe",
+            "multiplier": 0.75,
+            "formula": "CalculateOverloadDamage",
+            "radius": 1.5,
+            "damage_type": "irons_spellbooks:fire_magic",
+            "attach_element": false,
+            "damage_attacker": false,
+            "damage_victim": true
           }
         ]
-      },
-      "reaction_conditions": {
-      "minimum_primary_amount": 1,
-      "minimum_secondary_amount": 1
       }
     }
   ]
-} 
+}

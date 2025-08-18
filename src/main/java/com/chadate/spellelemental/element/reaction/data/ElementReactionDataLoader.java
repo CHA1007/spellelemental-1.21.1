@@ -1,437 +1,342 @@
 package com.chadate.spellelemental.element.reaction.data;
 
 import com.chadate.spellelemental.SpellElemental;
-import com.chadate.spellelemental.element.reaction.config.ElementReactionConfig;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 元素反应数据加载器
- * 负责从 JSON 数据包中加载元素反应配置
+ * 元素反应数据加载器（最小结构）
+ * 数据位置：data/<namespace>/element_reactions/*.json
+ * 新字段：
+ *  - elements: ["ice","fire"] 无序组合
+ *  - ordered: [["fire","ice"],["ice","fire"]] 有序组合（先后手）
  */
 public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new Gson();
-    
-    // 存储所有加载的反应配置（按ID）
-    private static final Map<String, ElementReactionConfig> REACTION_CONFIGS = new HashMap<>();
-    
-    // 存储元素对到反应的映射（保持与配置顺序一致，不排序，即有方向）
-    private static final Map<String, ElementReactionConfig> ELEMENT_PAIR_REACTIONS = new HashMap<>();
-    
+
     public ElementReactionDataLoader() {
         super(GSON, "element_reactions");
     }
-    
+
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap,
-                         @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profilerFiller) {
-        
-        // 清空现有的配置
-        REACTION_CONFIGS.clear();
-        ELEMENT_PAIR_REACTIONS.clear();
-        
-        SpellElemental.LOGGER.info("开始加载元素反应配置...");
-        
-        int successCount = 0;
-        int errorCount = 0;
-        
-        for (Map.Entry<ResourceLocation, JsonElement> entry : resourceLocationJsonElementMap.entrySet()) {
-            ResourceLocation resourceLocation = entry.getKey();
-            JsonElement jsonElement = entry.getValue();
-            
+    protected void apply(@Nonnull Map<ResourceLocation, JsonElement> object,
+                         @Nonnull ResourceManager resourceManager,
+                         @Nonnull ProfilerFiller profiler) {
+        ElementReactionRegistry.clear();
+        int ok = 0;
+        int err = 0;
+        SpellElemental.LOGGER.info("开始加载元素反应 JSON，共 {} 项", object.size());
+        for (Map.Entry<ResourceLocation, JsonElement> e : object.entrySet()) {
+            ResourceLocation id = e.getKey();
             try {
-                if (jsonElement.isJsonObject() && jsonElement.getAsJsonObject().has("variants")) {
-                    // 新Schema：包含 variants
-                    successCount += loadVariantsFile(resourceLocation, jsonElement.getAsJsonObject());
-                } else {
-                    // 旧Schema：不再支持
-                    SpellElemental.LOGGER.warn("已忽略旧Schema元素反应配置(需升级为variants): {}", resourceLocation);
-                    errorCount++;
+                JsonObject root = e.getValue().getAsJsonObject();
+                // 仅提取必要字段，避免 ordered 的异构类型导致整体反序列化失败
+                String reactionId = root.has("reaction_id") && root.get("reaction_id").isJsonPrimitive()
+                        ? root.get("reaction_id").getAsString() : null;
+                String triggerType = root.has("trigger_type") && root.get("trigger_type").isJsonPrimitive()
+                        ? root.get("trigger_type").getAsString() : null;
+                String trigger = triggerType == null ? "damage" : triggerType.trim().toLowerCase();
+
+                if (reactionId == null || reactionId.isBlank()) {
+                    SpellElemental.LOGGER.error("元素反应配置缺少 reaction_id: {}", id);
+                    err++;
+                    continue;
+                } else if ("tick".equals(trigger)) {
+                    // 禁止 tick 类型使用方向化配置（如 ordered/source/target）。一旦发现则跳过该条配置。
+                    if (root.has("ordered")) {
+                        SpellElemental.LOGGER.error("[元素反应: {}] tick 类型不支持方向化配置(ordered)", reactionId);
+                        err++;
+                        continue;
+                    }
+                    // 解析 tick 类型：requirements、consume 以及可选 effects
+                    // requirements: { "fire": 100, "ice": 50 }
+                    // consume: { "fire": 20, "ice": 10 }
+                    // effects: 支持与 damage 相同的结构（数组或分组对象 {"damage":[...]}）
+                    java.util.Map<String, Integer> reqMap = new java.util.HashMap<>();
+                    if (root.has("requirements") && root.get("requirements").isJsonObject()) {
+                        JsonObject req = root.getAsJsonObject("requirements");
+                        for (Map.Entry<String, JsonElement> en : req.entrySet()) {
+                            if (en.getValue().isJsonPrimitive()) {
+                                reqMap.put(en.getKey(), Math.max(0, en.getValue().getAsInt()));
+                            }
+                        }
+                    }
+                    java.util.Map<String, Integer> conMap = new java.util.HashMap<>();
+                    if (root.has("consume") && root.get("consume").isJsonObject()) {
+                        JsonObject con = root.getAsJsonObject("consume");
+                        for (Map.Entry<String, JsonElement> en : con.entrySet()) {
+                            if (en.getValue().isJsonPrimitive()) {
+                                conMap.put(en.getKey(), Math.max(0, en.getValue().getAsInt()));
+                            }
+                        }
+                    }
+
+                    java.util.List<ElementReactionRegistry.ReactionEffect> tickEffects = new java.util.ArrayList<>();
+                    int interval = 1;
+                    if (root.has("interval") && root.get("interval").isJsonPrimitive()) {
+                        try {
+                            interval = Math.max(1, root.get("interval").getAsInt());
+                        } catch (Exception ignore) { interval = 1; }
+                    }
+                    if (root.has("effects")) {
+                        if (root.get("effects").isJsonArray()) {
+                            JsonArray effects = root.getAsJsonArray("effects");
+                            for (JsonElement effEl : effects) {
+                                if (!effEl.isJsonObject()) continue;
+                                JsonObject eff = effEl.getAsJsonObject();
+                                String type = eff.has("type") && eff.get("type").isJsonPrimitive()
+                                        ? eff.get("type").getAsString() : "";
+                                float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
+                                        ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
+                                        ? eff.get("formula").getAsString() : "";
+                                float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
+                                        ? eff.get("radius").getAsFloat() : 0f;
+                                String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
+                                        ? eff.get("damage_type").getAsString() : "";
+                                boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
+                                // tick AOE 默认不伤害中心实体（与旧行为一致）；仅当显式为 true 时才伤害中心
+                                boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                tickEffects.add(
+                                        (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
+                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
+                                                : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
+                                );
+                            }
+                        } else if (root.get("effects").isJsonObject()) {
+                            JsonObject grouped = root.getAsJsonObject("effects");
+                            if (grouped.has("damage") && grouped.get("damage").isJsonArray()) {
+                                JsonArray effects = grouped.getAsJsonArray("damage");
+                                for (JsonElement effEl : effects) {
+                                    if (!effEl.isJsonObject()) continue;
+                                    JsonObject eff = effEl.getAsJsonObject();
+                                    String type = eff.has("type") && eff.get("type").isJsonPrimitive()
+                                            ? eff.get("type").getAsString() : "";
+                                    float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
+                                            ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                    String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
+                                            ? eff.get("formula").getAsString() : "";
+                                    float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
+                                            ? eff.get("radius").getAsFloat() : 0f;
+                                    String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
+                                            ? eff.get("damage_type").getAsString() : "";
+                                    boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
+                                    // tick AOE 默认不伤害中心实体（与旧行为一致）；仅当显式为 true 时才伤害中心
+                                    boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                    boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                    tickEffects.add(
+                                            (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
+                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
+                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    // 注册 tick 规则并记录反应
+                    ElementReactionRegistry.setTickRule(reactionId.trim(), reqMap, conMap, tickEffects, interval);
+                    ElementReactionRegistry.add(reactionId.trim(), "tick");
+                    ok++;
+                    // tick 类型完成，跳过后续 damage/effects 的通用解析
+                    continue;
                 }
-            } catch (JsonParseException e) {
-                SpellElemental.LOGGER.error("解析元素反应配置失败: {} - {}", resourceLocation, e.getMessage());
-                errorCount++;
-            } catch (Exception e) {
-                SpellElemental.LOGGER.error("加载元素反应配置时发生错误: {} - {}", resourceLocation, e.getMessage(), e);
-                errorCount++;
+                // 支持 trigger_type：缺省按 damage 归类
+                ElementReactionRegistry.add(reactionId.trim(), trigger);
+                // 若为 damage 类型，建立组合索引（仅支持新结构 ordered/elements）
+                if ("damage".equals(trigger)) {
+                    // 优先处理 ordered；允许两种形态：
+                    //  1) 数组对：["a","b"]
+                    //  2) 对象：{"source":"a","target":"b","consume":{"source":1,"target":2}}
+                    if (root.has("ordered") && root.get("ordered").isJsonArray()) {
+                        JsonArray arr = root.getAsJsonArray("ordered");
+                        for (JsonElement el : arr) {
+                            if (el.isJsonArray()) {
+                                JsonArray pair = el.getAsJsonArray();
+                                if (pair.size() >= 2 && pair.get(0).isJsonPrimitive() && pair.get(1).isJsonPrimitive()) {
+                                    ElementReactionRegistry.indexDamageCombination(
+                                            reactionId.trim(),
+                                            List.of(pair.get(0).getAsString(), pair.get(1).getAsString()),
+                                            false
+                                    );
+                                }
+                            } else if (el.isJsonObject()) {
+                                JsonObject obj = el.getAsJsonObject();
+                                String src = obj.has("source") ? obj.get("source").getAsString() : null;
+                                String tgt = obj.has("target") ? obj.get("target").getAsString() : null;
+                                int cs = 1, ct = 1;
+                                if (obj.has("consume") && obj.get("consume").isJsonObject()) {
+                                    JsonObject c = obj.getAsJsonObject("consume");
+                                    if (c.has("source")) cs = Math.max(0, c.get("source").getAsInt());
+                                    if (c.has("target")) ct = Math.max(0, c.get("target").getAsInt());
+                                }
+                                if (src != null && tgt != null) {
+                                    ElementReactionRegistry.indexDamageOrderedWithConsume(
+                                            reactionId.trim(), src, tgt, cs, ct
+                                    );
+                                    // 解析该方向下的 effects（可选）：兼容数组或分组对象({ "damage": [...] })
+                                    if (obj.has("effects")) {
+                                        if (obj.get("effects").isJsonArray()) {
+                                            JsonArray dirEffs = obj.getAsJsonArray("effects");
+                                            for (JsonElement de : dirEffs) {
+                                                if (!de.isJsonObject()) continue;
+                                                JsonObject eff = de.getAsJsonObject();
+                                                String type = eff.has("type") && eff.get("type").isJsonPrimitive()
+                                                        ? eff.get("type").getAsString() : "";
+                                                float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
+                                                        ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                                String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
+                                                        ? eff.get("formula").getAsString() : "";
+                                                float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
+                                                        ? eff.get("radius").getAsFloat() : 0f;
+                                                String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
+                                                        ? eff.get("damage_type").getAsString() : "";
+                                                boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
+                                                boolean damageAttacker = !eff.has("damage_attacker") || (eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean());
+                                                boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                                ElementReactionRegistry.addDirectionalEffect(
+                                                        src, tgt,
+                                                        (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
+                                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
+                                                                : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
+                                                );
+                                            }
+                                        } else if (obj.get("effects").isJsonObject()) {
+                                            JsonObject grouped = obj.getAsJsonObject("effects");
+                                            if (grouped.has("damage") && grouped.get("damage").isJsonArray()) {
+                                                JsonArray dirEffs = grouped.getAsJsonArray("damage");
+                                                for (JsonElement de : dirEffs) {
+                                                    if (!de.isJsonObject()) continue;
+                                                    JsonObject eff = de.getAsJsonObject();
+                                                    String type = eff.has("type") && eff.get("type").isJsonPrimitive()
+                                                            ? eff.get("type").getAsString() : "";
+                                                    float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
+                                                            ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                                    String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
+                                                            ? eff.get("formula").getAsString() : "";
+                                                    float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
+                                                            ? eff.get("radius").getAsFloat() : 0f;
+                                                    String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
+                                                            ? eff.get("damage_type").getAsString() : "";
+                                                    boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
+                                                    boolean damageAttacker = !eff.has("damage_attacker") || (eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean());
+                                                    boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                                    ElementReactionRegistry.addDirectionalEffect(
+                                                            src, tgt,
+                                                            (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
+                                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
+                                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
+                                                    );
+                                                    }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if (root.has("elements") && root.get("elements").isJsonArray()) {
+                        JsonArray el = root.getAsJsonArray("elements");
+                        if (el.size() >= 2 && el.get(0).isJsonPrimitive() && el.get(1).isJsonPrimitive()) {
+                            ElementReactionRegistry.indexDamageCombination(
+                                    reactionId.trim(),
+                                    List.of(el.get(0).getAsString(), el.get(1).getAsString()),
+                                    true
+                            );
+                        } else {
+                            SpellElemental.LOGGER.warn("元素反应缺少有效的 elements 字段: {}", id);
+                        }
+                    } else {
+                        SpellElemental.LOGGER.warn("元素反应缺少有效的 ordered/elements 组合字段: {}", id);
+                    }
+                }
+
+                // 解析 effects（仅非 tick）：支持数组或分组对象({ "damage": [...] })
+                if (!"tick".equals(trigger) && root.has("effects")) {
+                    if (root.get("effects").isJsonArray()) {
+                        JsonArray effects = root.getAsJsonArray("effects");
+                        for (JsonElement effEl : effects) {
+                            if (!effEl.isJsonObject()) continue;
+                            JsonObject eff = effEl.getAsJsonObject();
+                            String type = eff.has("type") && eff.get("type").isJsonPrimitive()
+                                    ? eff.get("type").getAsString() : "";
+                            float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
+                                    ? eff.get("multiplier").getAsFloat() : 1.0f;
+                            String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
+                                    ? eff.get("formula").getAsString() : "";
+                            float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
+                                    ? eff.get("radius").getAsFloat() : 0f;
+                            String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
+                                    ? eff.get("damage_type").getAsString() : "";
+                            boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
+                            ElementReactionRegistry.addEffect(
+                                    reactionId.trim(),
+                                    (radius > 0f || !damageTypeStr.isEmpty() || !attach)
+                                            ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach)
+                                            : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
+                            );
+                        }
+                    } else if (root.get("effects").isJsonObject()) {
+                        JsonObject grouped = root.getAsJsonObject("effects");
+                        if (grouped.has("damage") && grouped.get("damage").isJsonArray()) {
+                            JsonArray effects = grouped.getAsJsonArray("damage");
+                            for (JsonElement effEl : effects) {
+                                if (!effEl.isJsonObject()) continue;
+                                JsonObject eff = effEl.getAsJsonObject();
+                                String type = eff.has("type") && eff.get("type").isJsonPrimitive()
+                                        ? eff.get("type").getAsString() : "";
+                                float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
+                                        ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
+                                        ? eff.get("formula").getAsString() : "";
+                                float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
+                                        ? eff.get("radius").getAsFloat() : 0f;
+                                String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
+                                        ? eff.get("damage_type").getAsString() : "";
+                                boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
+                                ElementReactionRegistry.addEffect(
+                                        reactionId.trim(),
+                                        (radius > 0f || !damageTypeStr.isEmpty() || !attach)
+                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach)
+                                                : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
+                                );
+                            }
+                        }
+                        // 解析根级别的属性效果组
+                        if (grouped.has("attribute") && grouped.get("attribute").isJsonArray()) {
+                            JsonArray attrEffs = grouped.getAsJsonArray("attribute");
+                            for (JsonElement ae : attrEffs) {
+                                if (!ae.isJsonObject()) continue;
+                                JsonObject aobj = ae.getAsJsonObject();
+                                String attrId = aobj.has("attribute_id") && aobj.get("attribute_id").isJsonPrimitive() ? aobj.get("attribute_id").getAsString() : "";
+                                String op = aobj.has("type") && aobj.get("type").isJsonPrimitive() ? aobj.get("type").getAsString() : "add";
+                                double val = aobj.has("value") && aobj.get("value").isJsonPrimitive() ? aobj.get("value").getAsDouble() : 0.0;
+                                int dur = aobj.has("duration") && aobj.get("duration").isJsonPrimitive() ? Math.max(0, aobj.get("duration").getAsInt()) : 0;
+                                ElementReactionRegistry.addAttributeEffect(reactionId.trim(),
+                                        new ElementReactionRegistry.AttributeEffect(attrId, op, val, dur));
+                            }
+                        }
+                    }
+                }
+                ok++;
+            } catch (JsonParseException ex) {
+                SpellElemental.LOGGER.error("解析元素反应失败 {}: {}", id, ex.getMessage());
+                err++;
+            } catch (Exception ex) {
+                SpellElemental.LOGGER.error("加载元素反应出错 {}: {}", id, ex.getMessage(), ex);
+                err++;
             }
         }
-
-
-        
-        SpellElemental.LOGGER.info("元素反应配置加载完成: {} 个成功, {} 个错误", successCount, errorCount);
-        
-        // 调试输出：显示所有加载的反应配置
-        SpellElemental.LOGGER.info("=== 已加载的反应配置 ===");
-        for (Map.Entry<String, ElementReactionConfig> entry : REACTION_CONFIGS.entrySet()) {
-            ElementReactionConfig config = entry.getValue();
-            SpellElemental.LOGGER.info("反应ID: {} -> {} + {} (效果数量: {})", 
-                config.getReactionId(), 
-                config.getPrimaryElement(), 
-                config.getSecondaryElement(),
-                config.getEffects() != null && config.getEffects().getReactionEffects() != null ? 
-                    config.getEffects().getReactionEffects().size() : 0);
-        }
-        SpellElemental.LOGGER.info("=== 反应配置加载完成 ===");
+        SpellElemental.LOGGER.info("元素反应加载完成: {} 个成功, {} 个错误", ok, err);
     }
-
-    private int loadVariantsFile(ResourceLocation rl, JsonObject obj) {
-        String reactionId = obj.has("reaction_id") ? obj.get("reaction_id").getAsString() : rl.getPath();
-        String reactionName = obj.has("reaction_name") ? obj.get("reaction_name").getAsString() : reactionId;
-        String description = obj.has("description") ? obj.get("description").getAsString() : "";
-        int priority = obj.has("priority") ? obj.get("priority").getAsInt() : 0;
-        
-        SpellElemental.LOGGER.debug("加载反应文件: {} (ID: {}, 名称: {})", rl, reactionId, reactionName);
-        
-        int count = 0;
-        for (JsonElement variantEl : obj.getAsJsonArray("variants")) {
-            JsonObject v = variantEl.getAsJsonObject();
-            JsonObject ec = v.getAsJsonObject("element_conditions");
-            JsonObject cons = v.getAsJsonObject("element_consumption");
-            JsonObject dmg = v.getAsJsonObject("damage_effects");
-            
-            ElementReactionConfig cfg = new ElementReactionConfig();
-            cfg.setReactionId(reactionId + ":" + count);
-            cfg.setReactionName(reactionName);
-            cfg.setDescription(description);
-            cfg.setPriority(priority);
-            cfg.setPrimaryElement(ec.get("primary_element").getAsString());
-            cfg.setSecondaryElement(ec.get("secondary_element").getAsString());
-            cfg.setPrimaryConsumption(cons.get("primary_consumption").getAsInt());
-            cfg.setSecondaryConsumption(cons.get("secondary_consumption").getAsInt());
-            cfg.setDamageMultiplier(dmg.has("damage_multiplier") ? dmg.get("damage_multiplier").getAsFloat() : 1.0f);
-            
-            ElementReactionConfig.ReactionEffects effects = new ElementReactionConfig.ReactionEffects();
-            
-            // 统一处理效果配置
-            loadEffectsConfiguration(dmg, effects);
-            
-            cfg.setEffects(effects);
-            
-            SpellElemental.LOGGER.debug("处理变体 {}: 元素 {} + {}, 效果数量: {}", 
-                count, cfg.getPrimaryElement(), cfg.getSecondaryElement(), 
-                effects.getReactionEffects() != null ? effects.getReactionEffects().size() : 0);
-            
-            if (validateConfig(cfg, rl)) {
-                storeConfig(cfg);
-                count++;
-            } else {
-                SpellElemental.LOGGER.warn("忽略无效反应变体: {} @ {}", cfg.getReactionId(), rl);
-            }
-        }
-        return count;
-    }
-    
-    /**
-     * 加载效果配置（仅支持新格式）
-     */
-    private void loadEffectsConfiguration(JsonObject dmg, ElementReactionConfig.ReactionEffects effects) {
-        SpellElemental.LOGGER.debug("加载效果配置，damage_effects字段: {}", dmg.keySet());
-        
-        // 处理新格式：reaction_effects 数组
-        if (dmg.has("reaction_effects") && dmg.get("reaction_effects").isJsonArray()) {
-            List<ElementReactionConfig.ReactionEffect> reactionEffects = new java.util.ArrayList<>();
-            for (JsonElement effectEl : dmg.getAsJsonArray("reaction_effects")) {
-                JsonObject effectObj = effectEl.getAsJsonObject();
-                ElementReactionConfig.ReactionEffect effect = loadReactionEffect(effectObj);
-                reactionEffects.add(effect);
-            }
-            effects.setReactionEffects(reactionEffects);
-            SpellElemental.LOGGER.debug("加载了 {} 个反应效果", reactionEffects.size());
-        } else {
-            SpellElemental.LOGGER.warn("未找到 reaction_effects 数组或格式不正确");
-        }
-        
-        // 处理其他配置字段
-        dmg.has("status_effects");// 可以在这里加载状态效果
-
-        if (dmg.has("element_removal")) {
-            effects.setElementRemoval(dmg.get("element_removal").getAsBoolean());
-        }
-        
-        if (dmg.has("cooldown")) {
-            effects.setCooldown(dmg.get("cooldown").getAsInt());
-        }
-
-        // 解析 grant_elements
-        if (dmg.has("grant_elements") && dmg.get("grant_elements").isJsonArray()) {
-            List<ElementReactionConfig.GrantElement> grants = new java.util.ArrayList<>();
-            for (JsonElement geEl : dmg.getAsJsonArray("grant_elements")) {
-                if (!geEl.isJsonObject()) continue;
-                JsonObject gobj = geEl.getAsJsonObject();
-                ElementReactionConfig.GrantElement g = new ElementReactionConfig.GrantElement();
-                if (gobj.has("element")) g.setElement(gobj.get("element").getAsString());
-                if (gobj.has("amount")) g.setAmount(gobj.get("amount").getAsInt());
-                if (gobj.has("chance")) g.setChance(gobj.get("chance").getAsFloat());
-                if (gobj.has("target")) g.setTarget(gobj.get("target").getAsString());
-                if (gobj.has("mode")) g.setMode(gobj.get("mode").getAsString());
-                grants.add(g);
-            }
-            effects.setGrantElements(grants);
-        }
-    }
-    
-    /**
-     * 加载单个反应效果
-     */
-    private ElementReactionConfig.ReactionEffect loadReactionEffect(JsonObject effectObj) {
-        ElementReactionConfig.ReactionEffect effect = new ElementReactionConfig.ReactionEffect();
-        
-        if (effectObj.has("effect_type")) {
-            effect.setEffectType(effectObj.get("effect_type").getAsString());
-        }
-        
-        if (effectObj.has("damage_multiplier")) {
-            effect.setDamageMultiplier(effectObj.get("damage_multiplier").getAsFloat());
-        }
-        
-        if (effectObj.has("area_radius")) {
-            effect.setAreaRadius(effectObj.get("area_radius").getAsFloat());
-        }
-        
-        if (effectObj.has("include_self")) {
-            effect.setIncludeSelf(effectObj.get("include_self").getAsBoolean());
-        }
-        
-        if (effectObj.has("damage_source")) {
-            effect.setDamageSource(effectObj.get("damage_source").getAsString());
-        }
-        
-        if (effectObj.has("priority")) {
-            effect.setPriority(effectObj.get("priority").getAsInt());
-        }
-
-        // 新增：伤害模式与固定伤害
-        if (effectObj.has("damage_mode")) {
-            effect.setDamageMode(effectObj.get("damage_mode").getAsString());
-        }
-        if (effectObj.has("fixed_damage")) {
-            effect.setFixedDamage(effectObj.get("fixed_damage").getAsFloat());
-        }
-
-        // 解析 DOT 相关字段
-        if (effectObj.has("tick_damage")) {
-            effect.setTickDamage(effectObj.get("tick_damage").getAsFloat());
-        }
-        if (effectObj.has("interval_ticks")) {
-            effect.setIntervalTicks(effectObj.get("interval_ticks").getAsInt());
-        }
-        if (effectObj.has("duration_ticks")) {
-            effect.setDurationTicks(effectObj.get("duration_ticks").getAsInt());
-        }
-        if (effectObj.has("check_required_each_tick")) {
-            effect.setCheckRequiredEachTick(effectObj.get("check_required_each_tick").getAsBoolean());
-        }
-
-        // 解析 base 来源
-        if (effectObj.has("base_source")) {
-            effect.setBaseSource(effectObj.get("base_source").getAsString());
-        }
-        if (effectObj.has("base_attribute")) {
-            effect.setBaseAttribute(effectObj.get("base_attribute").getAsString());
-        }
-        // DOT 附着元素配置
-        if (effectObj.has("dot_attach_enabled")) {
-            effect.setDotAttachEnabled(effectObj.get("dot_attach_enabled").getAsBoolean());
-        }
-        if (effectObj.has("dot_attach_element")) {
-            effect.setDotAttachElement(effectObj.get("dot_attach_element").getAsString());
-        }
-        if (effectObj.has("dot_attach_amount")) {
-            effect.setDotAttachAmount(effectObj.get("dot_attach_amount").getAsInt());
-        }
-        if (effectObj.has("dot_attach_max")) {
-            effect.setDotAttachMax(effectObj.get("dot_attach_max").getAsInt());
-        }
-        
-        // 处理效果条件
-        if (effectObj.has("conditions")) {
-            effect.setConditions(loadEffectConditions(effectObj.getAsJsonObject("conditions")));
-        }
-        
-        return effect;
-    }
-    
-    /**
-     * 加载效果条件
-     */
-    private ElementReactionConfig.EffectConditions loadEffectConditions(JsonObject conditionsObj) {
-        ElementReactionConfig.EffectConditions conditions = new ElementReactionConfig.EffectConditions();
-        
-        if (conditionsObj.has("minimum_damage")) {
-            conditions.setMinimumDamage(conditionsObj.get("minimum_damage").getAsFloat());
-        }
-        
-        if (conditionsObj.has("maximum_damage")) {
-            conditions.setMaximumDamage(conditionsObj.get("maximum_damage").getAsFloat());
-        }
-        
-        if (conditionsObj.has("required_elements")) {
-            List<String> requiredElements = new java.util.ArrayList<>();
-            for (JsonElement elementEl : conditionsObj.getAsJsonArray("required_elements")) {
-                requiredElements.add(elementEl.getAsString());
-            }
-            conditions.setRequiredElements(requiredElements);
-        }
-        
-        if (conditionsObj.has("excluded_elements")) {
-            List<String> excludedElements = new java.util.ArrayList<>();
-            for (JsonElement elementEl : conditionsObj.getAsJsonArray("excluded_elements")) {
-                excludedElements.add(elementEl.getAsString());
-            }
-            conditions.setExcludedElements(excludedElements);
-        }
-        
-        return conditions;
-    }
-    
-
-    
-    /**
-     * 验证配置的有效性
-     */
-    private boolean validateConfig(ElementReactionConfig config, ResourceLocation resourceLocation) {
-        SpellElemental.LOGGER.debug("验证配置: {} (ID: {})", resourceLocation, config.getReactionId());
-
-        if (config.getReactionId() == null || config.getReactionId().trim().isEmpty()) {
-            SpellElemental.LOGGER.error("反应ID不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        if (config.getPrimaryElement() == null || config.getPrimaryElement().trim().isEmpty()) {
-            SpellElemental.LOGGER.error("主导元素不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        if (config.getSecondaryElement() == null || config.getSecondaryElement().trim().isEmpty()) {
-            SpellElemental.LOGGER.error("被反应元素不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        boolean hasDot = config.getEffects() != null
-                && config.getEffects().getReactionEffects() != null
-                && config.getEffects().getReactionEffects().stream().anyMatch(e -> "dot".equals(e.getEffectType()));
-
-        if (!hasDot && config.getPrimaryConsumption() <= 0) {
-            SpellElemental.LOGGER.error("主导元素消耗量必须大于0: {}", resourceLocation);
-            return false;
-        }
-        
-        if (!hasDot && config.getSecondaryConsumption() <= 0) {
-            SpellElemental.LOGGER.error("被反应元素消耗量必须大于0: {}", resourceLocation);
-            return false;
-        }
-        
-        if (config.getEffects() == null) {
-            SpellElemental.LOGGER.error("效果配置不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        // 检查效果配置是否有效
-        if (!config.getEffects().hasEffects()) {
-            SpellElemental.LOGGER.error("效果配置中没有有效的反应效果: {} (reaction_effects: {})", 
-                resourceLocation, config.getEffects().getReactionEffects());
-            return false;
-        }
-        
-        SpellElemental.LOGGER.debug("配置验证通过: {} (效果数量: {})", resourceLocation, 
-            config.getEffects().getReactionEffects() != null ? config.getEffects().getReactionEffects().size() : 0);
-        
-        return true;
-    }
-    
-    private void storeConfig(ElementReactionConfig config) {
-        REACTION_CONFIGS.put(config.getReactionId(), config);
-        String elementPair = createOrderedPairKey(config.getPrimaryElement(), config.getSecondaryElement());
-        ELEMENT_PAIR_REACTIONS.put(elementPair, config);
-
-        // 对于 DOT 反应，方向无关：额外登记反向键，避免重复写双向变体
-        boolean hasDot = config.getEffects() != null
-                && config.getEffects().getReactionEffects() != null
-                && config.getEffects().getReactionEffects().stream().anyMatch(e -> "dot".equals(e.getEffectType()));
-        if (hasDot) {
-            String reversed = createOrderedPairKey(config.getSecondaryElement(), config.getPrimaryElement());
-            ELEMENT_PAIR_REACTIONS.put(reversed, config);
-        }
-        SpellElemental.LOGGER.debug("加载元素反应配置: {} -> {} + {} (priority={})",
-                config.getReactionName(), config.getPrimaryElement(), config.getSecondaryElement(), config.getPriority());
-    }
-    
-    /**
-     * 有序元素对键（不排序，保留方向）
-     */
-    public static String createOrderedPairKey(String element1, String element2) {
-        return element1 + "+" + element2;
-    }
-
-    /**
-     * （保留）无序元素对键（按字母序），供需要时使用
-     */
-    public static String createElementPairKey(String element1, String element2) {
-        if (element1.compareTo(element2) <= 0) {
-            return element1 + "+" + element2;
-        } else {
-            return element2 + "+" + element1;
-        }
-    }
-    
-    /**
-     * 根据反应ID获取反应配置
-     */
-    public static ElementReactionConfig getReactionById(String reactionId) {
-        return REACTION_CONFIGS.get(reactionId);
-    }
-    
-    /**
-     * 根据两个元素（有方向）获取可能的反应配置
-     */
-    public static ElementReactionConfig getReactionByElements(String element1, String element2) {
-        String elementPair = createOrderedPairKey(element1, element2);
-        return ELEMENT_PAIR_REACTIONS.get(elementPair);
-    }
-    
-    /**
-     * 检查两个元素之间是否存在反应（无序检查）
-     */
-    public static boolean hasReaction(String element1, String element2) {
-        return getReactionByElements(element1, element2) != null
-            || getReactionByElements(element2, element1) != null;
-    }
-    
-    /**
-     * 获取所有反应配置（按 priority 降序）
-     */
-    public static List<ElementReactionConfig> getAllReactionsSortedByPriority() {
-        List<ElementReactionConfig> list = new ArrayList<>(REACTION_CONFIGS.values());
-        list.sort(Comparator.comparingInt(ElementReactionConfig::getPriority).reversed());
-        return list;
-    }
-    
-    /**
-     * 获取所有反应配置（拷贝）
-     */
-    public static Map<String, ElementReactionConfig> getAllReactions() {
-        return new HashMap<>(REACTION_CONFIGS);
-    }
-    
-    /**
-     * 获取所有元素对反应映射（拷贝）
-     */
-    public static Map<String, ElementReactionConfig> getAllElementPairReactions() {
-        return new HashMap<>(ELEMENT_PAIR_REACTIONS);
-    }
-} 
+}

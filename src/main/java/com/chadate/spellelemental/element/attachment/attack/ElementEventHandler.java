@@ -6,7 +6,6 @@ import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.attachment.config.UnifiedElementAttachmentConfig;
 import com.chadate.spellelemental.element.attachment.data.EnvironmentalAttachmentRegistry;
-import com.chadate.spellelemental.element.reaction.runtime.ElementReactionHandler;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import com.chadate.spellelemental.util.DamageAttachmentGuards;
 import net.minecraft.server.level.ServerLevel;
@@ -33,12 +32,10 @@ public class ElementEventHandler {
         }
         ElementAttachmentRegistry.handleAttachment(target, source, entityId, damageAmount);
 
-        ElementReactionHandler.tryAmplifyAnyReaction(event);
     }
     private ElementEventHandler() {}
 
     public static void handleEnvironmentalAttachment(ServerTickEvent.Post event) {
-        ServerLevel level = event.getServer().overworld();
         List<UnifiedElementAttachmentConfig> configs = EnvironmentalAttachmentRegistry.getAll();
         if (configs.isEmpty()) return;
 
@@ -64,18 +61,23 @@ public class ElementEventHandler {
     private static void applyAttachment(LivingEntity entity, UnifiedElementAttachmentConfig cfg) {
         ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
         int duration = cfg.getEffects() != null ? cfg.getEffects().getDuration() : 200;
-        String elementKey = extractElementKey(cfg.getAttachmentType());
+        // 仅使用 element_id 作为容器键（小写）。若缺失则跳过写入。
+        String elementKey = cfg.getElementId();
+        if (elementKey == null || elementKey.isBlank()) {
+            // 不写入，保持一致性
+            return;
+        }
+        elementKey = elementKey.toLowerCase();
         container.setValue(elementKey, duration);
+        // 记录最近附着时间（用于同体反应方向判定）
+        long gameTime = entity.level().getGameTime();
+        container.markApplied(elementKey, gameTime);
         // 跟踪衰减，离开环境后由衰减系统自然清除
         ElementDecaySystem.track(entity);
         PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), elementKey, duration));
     }
 
-    private static String extractElementKey(String attachmentTypeName) {
-        if (attachmentTypeName == null) return "";
-        String s = attachmentTypeName.contains(":" ) ? attachmentTypeName.substring(attachmentTypeName.indexOf(":" ) + 1) : attachmentTypeName;
-        return s.toLowerCase();
-    }
+    
 
     // 当玩家开始追踪（看见）某个实体时，同步该实体的元素状态快照
     public static void onStartTracking(PlayerEvent.StartTracking event) {

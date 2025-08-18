@@ -26,7 +26,7 @@ public class ElementAuraRenderer {
     public static void onRenderLivingPost(RenderLivingEvent.Post<LivingEntity, ?> event) {
         // 不在暂停时生成粒子（单人暂停或打开菜单时）
         Minecraft mc = Minecraft.getInstance();
-        if (mc == null || mc.isPaused()) return;
+        if (mc.isPaused()) return;
 
         LivingEntity entity = event.getEntity();
         Level level = entity.level();
