@@ -1,13 +1,14 @@
 package com.chadate.spellelemental.element.reaction.runtime;
 
 import com.chadate.spellelemental.SpellElemental;
-import com.chadate.spellelemental.attribute.ModAttributes;
+import com.chadate.spellelemental.register.ModAttributes;
 import com.chadate.spellelemental.client.network.custom.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.data.ElementReactionRegistry;
-import com.chadate.spellelemental.event.element.ReactionInjuryFormula;
-import com.chadate.spellelemental.util.DamageAttachmentGuards;
+import com.chadate.spellelemental.util.ReactionInjuryFormula;
+import com.chadate.spellelemental.event.element.ElementDecaySystem;
+import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -16,38 +17,37 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 /**
  * 元素反应处理器
  * 负责检测、触发和执行元素反应
  */
 public class ElementReactionHandler {
-    // 当为 true 时，跳过元素附着/反应计算（用于本类内部触发的 AOE 等“二次伤害”）
-    public static final ThreadLocal<Boolean> SUPPRESS_ATTACHMENT = ThreadLocal.withInitial(() -> false);
-    private static final int DEFAULT_CONSUME_PER_SIDE = 1; // 仅作为兜底，优先读取注册表中的方向化消耗
-    
     /**
      * 伤害类型反应
      */
-    public static void damageTypeReaction(LivingDamageEvent.Pre event) {
-        // 若被 AOE 标记抑制，则不进行反应与附着
-        if (Boolean.TRUE.equals(SUPPRESS_ATTACHMENT.get())) {
-            return;
-        }
+    public static void damageTypeReaction(SpellDamageEvent event) {
         // 若无任何 damage 类型的反应或未建立任何组合索引，直接返回
         if (ElementReactionRegistry.getDamageReactions().isEmpty()) return;
         if (!ElementReactionRegistry.hasAnyDamageCombos()) return;
         LivingEntity victim = event.getEntity();
-        if (victim == null) return;
-        DamageSource dmgSource = event.getSource();
+        DamageSource dmgSource = event.getSpellDamageSource();
         Entity direct = dmgSource.getDirectEntity();
         Entity attacker = dmgSource.getEntity();
+        
+        // 调试：记录元素反应处理开始时的元素状态
+        SpellElemental.LOGGER.info("[DEBUG] ElementReaction START - victim {} elements: {}", 
+            victim.getId(), 
+            collectPresentElements(victim));
+        if (attacker instanceof LivingEntity la) {
+            SpellElemental.LOGGER.info("[DEBUG] ElementReaction START - attacker {} elements: {}", 
+                attacker.getId(), 
+                collectPresentElements(la));
+        }
 
         // 收集候选元素：来源(攻击方)与目标(受击方)
         List<String> targetCandidates = collectPresentElements(victim);
@@ -59,10 +59,7 @@ public class ElementReactionHandler {
         }
 
         // 当攻击方没有任何元素时，尝试在同一目标实体上进行元素对匹配（如先冰后火都附着在受击者身上）
-        boolean intraTargetMode = false;
-        if (sourceCandidates.isEmpty() && !targetCandidates.isEmpty()) {
-            intraTargetMode = true;
-        }
+        boolean intraTargetMode = sourceCandidates.isEmpty() && !targetCandidates.isEmpty();
         if (targetCandidates.isEmpty() && sourceCandidates.isEmpty()) return;
 
         // 基于注册表进行最小匹配：找到首个(source, target)满足反应索引的组合
@@ -86,18 +83,14 @@ public class ElementReactionHandler {
             // 在同一实体上寻找两个不同元素的有效组合。
             // 1) 首选：最近附着的元素（lastApplied）作为 source。
             String inferredSource = null;
-            if (victim != null) {
-                ElementContainerAttachment vc = victim.getData(SpellAttachments.ELEMENTS_CONTAINER);
-                long bestTime = Long.MIN_VALUE;
-                for (String c : targetCandidates) {
-                    long t = vc.getLastApplied(c);
-                    if (t > bestTime) {
-                        bestTime = t;
-                        inferredSource = c;
-                    }
+            ElementContainerAttachment vc = victim.getData(SpellAttachments.ELEMENTS_CONTAINER);
+            long bestTime = Long.MIN_VALUE;
+            for (String c : targetCandidates) {
+                long t = vc.getLastApplied(c);
+                if (t > bestTime) {
+                    bestTime = t;
+                    inferredSource = c;
                 }
-                // 若没有时间戳（bestTime 仍为最小），视为未知
-                if (bestTime == Long.MIN_VALUE) inferredSource = null;
             }
 
             // 2) 次选：基于 DamageSource 的 msgId 推断。
@@ -140,57 +133,49 @@ public class ElementReactionHandler {
 
         if (reactionId == null) return;
 
-        // 命中某个反应ID：执行元素量消耗（优先使用注册表中的定制消耗，其余效果保持 TODO）
-        int[] consume = ElementReactionRegistry.getDamageConsumeFor(matchedSource, matchedTarget);
-        int consumeSource = consume.length > 0 ? consume[0] : DEFAULT_CONSUME_PER_SIDE;
-        int consumeTarget = consume.length > 1 ? consume[1] : DEFAULT_CONSUME_PER_SIDE;
+        // 命中某个反应ID：执行元素消耗逻辑（可被 consume flag 关闭）
+        boolean shouldConsume = ElementReactionRegistry.shouldConsumeElements(reactionId);
 
-        // 记录消耗前的剩余值（若可用）
-        int beforeVictimTarget = getElementValue(victim, matchedTarget);
+        // 记录消耗前的剩余值
+        int targetElementAmount = getElementValue(victim, matchedTarget);
         int beforeVictimSource = getElementValue(victim, matchedSource);
         int beforeAttackerSource = (attacker instanceof LivingEntity la) ? getElementValue(la, matchedSource) : -1;
         int beforeDirectSource = (direct instanceof LivingEntity ld) ? getElementValue(ld, matchedSource) : -1;
 
-        consumeElementOnEntity(victim, matchedTarget, Math.max(0, consumeTarget));
-
-        // 尝试扣减施加方来源元素量（若为生物且其容器中存在该元素）
-        boolean consumedSource = false;
-        if (!intraTargetMode) {
-            if (attacker instanceof LivingEntity livingAttacker) {
-                consumeElementOnEntity(livingAttacker, matchedSource, Math.max(0, consumeSource));
-                consumedSource = true;
-            } else if (direct instanceof LivingEntity livingDirect) {
-                // 若无 attacker，但有直接实体为生物，则尝试在其上扣减
-                consumeElementOnEntity(livingDirect, matchedSource, Math.max(0, consumeSource));
-                consumedSource = true;
+        // 元素反应消耗逻辑：后手元素完全清除，先手元素消耗后手元素的量（可关闭）
+        // 注意：在 intraTarget 模式下，matchedSource 是后手元素（新附着的），matchedTarget 是先手元素（原有的）
+        int sourceElementAmount = getElementValue(victim, matchedSource);
+        if (shouldConsume) {
+            // 1. 完全清除后手元素（matchedSource）
+            if (sourceElementAmount > 0) {
+                consumeElementOnEntity(victim, matchedSource, sourceElementAmount);
             }
-        }
-        // 若未能在攻击方扣减（或是同体反应模式），则从受击者身上扣减来源元素
-        if (!consumedSource) {
-            consumeElementOnEntity(victim, matchedSource, Math.max(0, consumeSource));
+            // 2. 从先手元素（matchedTarget）中消耗后手元素的量
+            if (sourceElementAmount > 0) {
+                consumeElementOnEntity(victim, matchedTarget, sourceElementAmount);
+            }
         }
 
         // 记录消耗后的剩余值（若可用）
-        int afterVictimTarget = getElementValue(victim, matchedTarget);
-        int afterVictimSource = getElementValue(victim, matchedSource);
+        int afterVictimTarget = shouldConsume ? getElementValue(victim, matchedTarget) : targetElementAmount;
+        int afterVictimSource = shouldConsume ? getElementValue(victim, matchedSource) : beforeVictimSource;
         int afterAttackerSource = (attacker instanceof LivingEntity la2) ? getElementValue(la2, matchedSource) : -1;
         int afterDirectSource = (direct instanceof LivingEntity ld2) ? getElementValue(ld2, matchedSource) : -1;
 
         // 详细调试输出（含消耗前/后剩余值）
         SpellElemental.LOGGER.info(
-                "ElementReaction triggered: id={}, mode={}, src={}, tgt={}, consume=[{},{}], victim={}, attacker={}, direct={}, inferredSource={}, before(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{}), after(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{})",
+                "ElementReaction triggered: id={}, mode={}, src={}, tgt={}, targetConsumed={}, victim={}, attacker={}, direct={}, inferredSource={}, before(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{}), after(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{})",
                 reactionId,
                 (intraTargetMode ? "intraTarget" : "normal"),
                 matchedSource,
                 matchedTarget,
-                consumeSource,
-                consumeTarget,
+                targetElementAmount,
                 victim.getId(),
                 (attacker != null ? attacker.getId() : -1),
                 (direct != null ? direct.getId() : -1),
                 (intraTargetMode ? matchedSource : ""),
                 beforeVictimSource,
-                beforeVictimTarget,
+                targetElementAmount,
                 beforeAttackerSource,
                 beforeDirectSource,
                 afterVictimSource,
@@ -201,7 +186,7 @@ public class ElementReactionHandler {
 
         // 根据反应ID与命中的方向(src->tgt)执行效果（优先方向化，无则回退全局）
         // elementsAmount 采用被反应元素的“实际消耗量”（before-after），而非配置的目标消耗值
-        int actualConsumedTarget = Math.max(0, beforeVictimTarget - afterVictimTarget);
+        int actualConsumedTarget = shouldConsume ? Math.max(0, targetElementAmount - afterVictimTarget) : 0;
         applyEffectsForReaction(event, reactionId, matchedSource, matchedTarget, attacker, victim, actualConsumedTarget);
     }
 
@@ -229,7 +214,7 @@ public class ElementReactionHandler {
                 if (player == null || player.level().isClientSide()) continue;
                 var level = player.level();
                 var aabb = player.getBoundingBox().inflate(32.0); // 半径 32 格
-                java.util.List<net.minecraft.world.entity.LivingEntity> candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb, e -> e.isAlive());
+                java.util.List<net.minecraft.world.entity.LivingEntity> candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb, LivingEntity::isAlive);
                 for (net.minecraft.world.entity.LivingEntity entity : candidates) {
                     if (entity == null) continue;
                     int id = entity.getId();
@@ -262,6 +247,8 @@ public class ElementReactionHandler {
         }
     }
 
+
+
     /**
      * 收集实体上当前存在（值>0）的元素ID列表（小写）。
      */
@@ -287,7 +274,7 @@ public class ElementReactionHandler {
         if (source == null) return null;
         try {
             String id = source.getMsgId();
-            if (id == null || id.isBlank()) return null;
+            if (id.isBlank()) return null;
             String low = id.toLowerCase();
             for (String c : candidatesLowercase) {
                 if (low.contains(c.toLowerCase())) return c;
@@ -300,7 +287,7 @@ public class ElementReactionHandler {
 
     // -------------- 通用效果执行 --------------
 
-    private static void applyEffectsForReaction(LivingDamageEvent.Pre event, String reactionId,
+    private static void applyEffectsForReaction(SpellDamageEvent event, String reactionId,
                                                 String matchedSource, String matchedTarget,
                                                 Entity attacker, LivingEntity victim,
                                                 int elementsAmount) {
@@ -313,7 +300,7 @@ public class ElementReactionHandler {
         }
         if (effects.isEmpty()) return;
 
-        float damage = event.getNewDamage();
+        float damage = event.getAmount();
         for (ElementReactionRegistry.ReactionEffect eff : effects) {
             if (eff == null || eff.type.isEmpty()) continue;
             switch (eff.type) {
@@ -324,18 +311,145 @@ public class ElementReactionHandler {
                     // 额外溅射伤害：不改变当前 event 的直接伤害，仅对周围单位造成伤害
                     applyAoeEffect(event, damage, eff, attacker, victim, elementsAmount);
                 }
+                case "attachment" -> {
+                    // 数据驱动的元素附着：将 eff.elementId 以 eff.elementAmount 为值附着到受害者
+                    applyElementAttachmentEffect(attacker, victim, eff);
+                }
                 default -> {
                     // 其他类型暂未实现，留作扩展
                 }
             }
         }
-        if (damage != event.getNewDamage()) {
-            event.setNewDamage(damage);
+        if (damage != event.getAmount()) {
+            event.setAmount(damage);
+        }
+        
+        // 应用属性效果
+        applyAttributeEffects(reactionId, victim);
+    }
+
+    /**
+     * 将元素附着到受害者实体上，遵循现有的元素附着系统：
+     * - setValue(elementId, amount)
+     * - markAppliedWithAttacker(elementId, gameTime, attackerId)
+     * - ElementDecaySystem.track(entity)
+     * - 网络同步 ElementData
+     */
+    private static void applyElementAttachmentEffect(Entity attacker, LivingEntity victim,
+                                                     ElementReactionRegistry.ReactionEffect eff) {
+        if (victim == null || victim.level().isClientSide()) return;
+        if (eff == null || eff.elementId == null || eff.elementId.isBlank()) return;
+        // 概率判定（默认 1.0）
+        float chance = eff.elementChance <= 0f ? 1.0f : eff.elementChance;
+        if (victim.getRandom().nextFloat() > chance) return;
+
+        String elementKeyLower = eff.elementId.toLowerCase();
+        int amount = Math.max(0, eff.elementAmount);
+        if (amount <= 0) return;
+
+        ElementContainerAttachment container = victim.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        container.setValue(elementKeyLower, amount);
+        long gameTime = victim.level().getGameTime();
+        int attackerId = (attacker != null) ? attacker.getId() : -1;
+        container.markAppliedWithAttacker(elementKeyLower, gameTime, attackerId);
+        ElementDecaySystem.track(victim);
+        PacketDistributor.sendToAllPlayers(new ElementData(victim.getId(), elementKeyLower, amount));
+    }
+
+    /**
+     * 应用元素反应的属性效果到目标实体
+     */
+    private static void applyAttributeEffects(String reactionId, LivingEntity target) {
+        if (reactionId == null || target == null || target.level().isClientSide()) return;
+        
+        SpellElemental.LOGGER.info("[AttributeEffect] Checking attribute effects for reaction: {} on target: {}", reactionId, target.getName().getString());
+        
+        List<ElementReactionRegistry.AttributeEffect> attributeEffects = ElementReactionRegistry.getAttributeEffects(reactionId);
+        SpellElemental.LOGGER.info("[AttributeEffect] Found {} attribute effects for reaction: {}", attributeEffects.size(), reactionId);
+        
+        if (attributeEffects.isEmpty()) return;
+        
+        for (ElementReactionRegistry.AttributeEffect effect : attributeEffects) {
+            if (effect == null || effect.attributeId.isEmpty()) continue;
+            
+            SpellElemental.LOGGER.info("[AttributeEffect] Processing effect: attributeId={}, operation={}, value={}, duration={}", 
+                effect.attributeId, effect.operation, effect.value, effect.duration);
+            
+            try {
+                // 解析属性ID为ResourceLocation
+                net.minecraft.resources.ResourceLocation attrLocation = net.minecraft.resources.ResourceLocation.parse(effect.attributeId);
+                SpellElemental.LOGGER.info("[AttributeEffect] Parsed attribute location: {}", attrLocation);
+                
+                // 从注册表获取属性
+                net.minecraft.core.Registry<net.minecraft.world.entity.ai.attributes.Attribute> attributeRegistry = 
+                    target.level().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.ATTRIBUTE);
+                net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attributeHolder = 
+                    attributeRegistry.getHolder(attrLocation).orElse(null);
+                
+                if (attributeHolder != null) {
+                    SpellElemental.LOGGER.info("[AttributeEffect] Found attribute holder: {}", attributeHolder.getKey());
+                    // 创建属性修饰符
+                    net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation operation;
+                    switch (effect.operation.toLowerCase()) {
+                        case "multiply_base" -> operation = net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+                        case "multiply_total" -> operation = net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+                        default -> operation = net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE;
+                    }
+                    
+                    // 生成唯一的修饰符ID
+                    net.minecraft.resources.ResourceLocation modifierId = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                        "spellelemental", 
+                        "reaction_" + reactionId + "_" + effect.attributeId.replace(":", "_")
+                    );
+                    
+                    net.minecraft.world.entity.ai.attributes.AttributeModifier modifier = new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                        modifierId,
+                        effect.value,
+                        operation
+                    );
+                    
+                    // 应用属性修饰符
+                    net.minecraft.world.entity.ai.attributes.AttributeInstance instance = target.getAttribute(attributeHolder);
+                    if (instance != null) {
+                        SpellElemental.LOGGER.info("[AttributeEffect] Got attribute instance for {}, current value: {}", 
+                            effect.attributeId, instance.getValue());
+                        
+                        // 移除旧的同名修饰符（如果存在）
+                        instance.removeModifier(modifierId);
+                        // 添加新修饰符（使用addTransientModifier方法）
+                        instance.addTransientModifier(modifier);
+                        
+                        SpellElemental.LOGGER.info("[AttributeEffect] Applied modifier, new value: {}", instance.getValue());
+                        SpellElemental.LOGGER.info("[AttributeEffect] Successfully applied {} {} {} to {} for {} ticks", 
+                            effect.attributeId, effect.operation, effect.value, target.getName().getString(), effect.duration);
+                        
+                        // 如果有持续时间，注册到属性效果管理器进行自动移除
+                        if (effect.duration > 0) {
+                            AttributeEffectManager.registerTimedEffect(target, attributeHolder, modifierId, effect.duration);
+                            SpellElemental.LOGGER.debug("[AttributeEffect] Registered for auto-removal in {} ticks", effect.duration);
+                        }
+                    } else {
+                        SpellElemental.LOGGER.warn("[AttributeEffect] Attribute instance is null for {}", effect.attributeId);
+                    }
+                } else {
+                    SpellElemental.LOGGER.warn("[AttributeEffect] Attribute holder not found for: {}", attrLocation);
+                }
+            } catch (Exception e) {
+                SpellElemental.LOGGER.warn("[AttributeEffect] Failed to apply attribute effect: {} to {}", effect.attributeId, target.getName().getString(), e);
+            }
         }
     }
 
     private static float applyDamageAmplify(float baseDamage, ElementReactionRegistry.ReactionEffect eff, Entity attackerEntity) {
         float out = baseDamage;
+        // 特殊：激化反应公式（直接计算最终伤害）
+        if ("QuickenReactionDamage".equals(eff.formula)) {
+            float astral = 0f;
+            if (attackerEntity instanceof LivingEntity attacker) {
+                astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+            }
+            return ReactionInjuryFormula.QuickenReactionDamage(baseDamage, eff.multiplier, astral);
+        }
         // 基础倍率
         if (eff.multiplier != 0f) {
             out *= eff.multiplier;
@@ -358,7 +472,7 @@ public class ElementReactionHandler {
      * - 半径 eff.radius <= 0 则不生效。
      * - 伤害来源优先继承 event 的 DamageSource；其他 source 模式暂留扩展。
      */
-    private static void applyAoeEffect(LivingDamageEvent.Pre event, float baseDamage,
+    private static void applyAoeEffect(SpellDamageEvent event, float baseDamage,
                                        ElementReactionRegistry.ReactionEffect eff,
                                        Entity attackerEntity, LivingEntity victim,
                                        int elementsAmount) {
@@ -393,7 +507,7 @@ public class ElementReactionHandler {
         if (finalDamage <= 0f) return;
 
         // 伤害类型处理：若配置了 damage_type，按该类型构造 DamageSource，否则继承原事件
-        DamageSource src = event.getSource();
+        DamageSource src = event.getSpellDamageSource();
         if (eff.damageType != null && !eff.damageType.isEmpty()) {
             try {
                 ResourceLocation rl = ResourceLocation.tryParse(eff.damageType);
@@ -404,8 +518,8 @@ public class ElementReactionHandler {
                 var key = ResourceKey.create(Registries.DAMAGE_TYPE, rl);
                 Holder<DamageType> holder = reg.getHolder(key).orElse(null);
                 if (holder != null) {
-                    Entity direct = event.getSource().getDirectEntity();
-                    Entity causing = (attackerEntity != null) ? attackerEntity : event.getSource().getEntity();
+                    Entity direct = event.getSpellDamageSource().getDirectEntity();
+                    Entity causing = (attackerEntity != null) ? attackerEntity : event.getSpellDamageSource().getEntity();
                     src = new DamageSource(holder, direct, causing);
                 }
             } catch (Throwable t) {
@@ -417,16 +531,12 @@ public class ElementReactionHandler {
         var aabb = victim.getBoundingBox().inflate(radius);
         final DamageSource srcFinal = src;
         final LivingEntity attackerLiving = (attackerEntity instanceof LivingEntity le) ? le : null;
-        for (LivingEntity ent : victim.level().getEntitiesOfClass(LivingEntity.class, aabb, e -> e.isAlive())) {
+        for (LivingEntity ent : victim.level().getEntitiesOfClass(LivingEntity.class, aabb, LivingEntity::isAlive)) {
             if (!eff.damageVictim && ent == victim) continue;
             if (!eff.damageAttacker && attackerLiving != null && ent == attackerLiving) continue;
             if (ent.invulnerableTime > 0) continue;
-            if (!eff.attachElement) {
-                // 抑制“受伤即附着”逻辑
-                DamageAttachmentGuards.runAsNonAttachable(() -> ent.hurt(srcFinal, finalDamage));
-            } else {
-                ent.hurt(srcFinal, finalDamage);
-            }
+
+            ent.hurt(srcFinal, finalDamage);
         }
     }
 
@@ -446,57 +556,59 @@ public class ElementReactionHandler {
 
         long time = entity.level().getGameTime();
         for (String rid : allTick) {
-            ElementReactionRegistry.TickRule rule = ElementReactionRegistry.getTickRule(rid);
-            if (rule == null) continue;
-            // 基于规则的触发间隔进行节流（interval=1 表示每tick）
-            if (rule.interval > 1 && (time % rule.interval) != 0) {
-                continue;
-            }
-            // 检查 requirements：仅当所有需求元素的值 >= 阈值时才触发
-            boolean meetsRequirements = true;
-            for (java.util.Map.Entry<String, Integer> req : rule.requirements.entrySet()) {
-                String elem = req.getKey();
-                int need = Math.max(0, req.getValue());
-                if (need <= 0) continue; // 0 或负数视为无需求
-                int cur = container.getValue(elem);
-                if (cur < need) {
-                    meetsRequirements = false;
-                    break;
+            java.util.List<ElementReactionRegistry.TickRule> rules = ElementReactionRegistry.getTickRules(rid);
+            if (rules.isEmpty()) continue;
+            for (ElementReactionRegistry.TickRule rule : rules) {
+                // 基于规则的触发间隔进行节流（interval=1 表示每tick）
+                if (rule.interval > 1 && (time % rule.interval) != 0) {
+                    continue;
                 }
-            }
-            if (!meetsRequirements) {
-                continue;
-            }
-            // 调试：记录满足 requirements 的 tick 反应
-            try {
-                SpellElemental.LOGGER.debug("[TickReaction] id=" + rid + " meets requirements=" + rule.requirements + ", consumePlan=" + rule.consume + ", time=" + time);
-            } catch (Throwable ignored) {}
-            int totalConsumed = 0;
-            for (java.util.Map.Entry<String, Integer> con : rule.consume.entrySet()) {
-                String elem = con.getKey();
-                int want = Math.max(0, con.getValue());
-                int before = container.getValue(elem);
-                if (before <= 0 || want <= 0) continue;
-                int real = Math.min(before, want);
-                if (real > 0) {
+                // 检查 requirements：仅当所有需求元素的值 >= 阈值时才触发
+                boolean meetsRequirements = true;
+                for (java.util.Map.Entry<String, Integer> req : rule.requirements.entrySet()) {
+                    String elem = req.getKey();
+                    int need = Math.max(0, req.getValue());
+                    if (need <= 0) continue; // 0 或负数视为无需求
+                    int cur = container.getValue(elem);
+                    if (cur < need) {
+                        meetsRequirements = false;
+                        break;
+                    }
+                }
+                if (!meetsRequirements) {
+                    continue;
+                }
+                // 调试：记录满足 requirements 的 tick 反应
+                try {
+                    SpellElemental.LOGGER.debug("[TickReaction] id=" + rid + " meets requirements=" + rule.requirements + ", consumePlan=" + rule.consume + ", time=" + time);
+                } catch (Throwable ignored) {}
+                int totalConsumed = 0;
+                for (java.util.Map.Entry<String, Integer> con : rule.consume.entrySet()) {
+                    String elem = con.getKey();
+                    int want = Math.max(0, con.getValue());
+                    int before = container.getValue(elem);
+                    if (before <= 0 || want <= 0) continue;
+                    int real = Math.min(before, want);
                     consumeElementOnEntity(entity, elem, real);
                     totalConsumed += real;
                 }
-            }
 
-            // 执行可选效果：允许 totalConsumed == 0 也触发（例如配置为零消耗时）
-            if (!rule.effects.isEmpty()) {
-                try {
-                    SpellElemental.LOGGER.debug("[TickReaction] id=" + rid + " totalConsumed=" + totalConsumed + ", start effects size=" + rule.effects.size());
-                } catch (Throwable ignored) {}
-                for (ElementReactionRegistry.ReactionEffect eff : rule.effects) {
-                    if (eff == null || eff.type.isEmpty()) continue;
-                    if ("aoe".equals(eff.type)) {
-                        applyAoeEffectFromTick(entity, eff, totalConsumed);
-                    } else if ("extra".equals(eff.type)) {
-                        applyExtraDamageFromTick(entity, eff, totalConsumed);
+                // 执行可选效果：允许 totalConsumed == 0 也触发（例如配置为零消耗时）
+                if (!rule.effects.isEmpty()) {
+                    try {
+                        SpellElemental.LOGGER.debug("[TickReaction] id=" + rid + " totalConsumed=" + totalConsumed + ", start effects size=" + rule.effects.size());
+                    } catch (Throwable ignored) {}
+                    for (ElementReactionRegistry.ReactionEffect eff : rule.effects) {
+                        if (eff == null || eff.type.isEmpty()) continue;
+                        if ("aoe".equals(eff.type)) {
+                            applyAoeEffectFromTick(entity, eff, totalConsumed);
+                        } else if ("extra".equals(eff.type)) {
+                            applyExtraDamageFromTick(entity, eff, totalConsumed);
+                        } else if ("attachment".equals(eff.type)) {
+                            applyAttachmentFromTick(entity, eff);
+                        }
+                        // 其他类型留作扩展
                     }
-                    // 其他类型留作扩展
                 }
             }
         }
@@ -560,20 +672,17 @@ public class ElementReactionHandler {
                     ", elementsAmount=" + elementsAmount + ", astral=" + astral + 
                     ", formula=" + eff.formula + ", multiplier=" + eff.multiplier + 
                     ", radius=" + radius + ", dmgType=" + eff.damageType + ", finalDamage=" + finalDamage +
-                    ", attachElement=" + eff.attachElement + ", damageAttacker=" + eff.damageAttacker);
+                    ", damageAttacker=" + eff.damageAttacker);
         } catch (Throwable ignored) {}
 
         var aabb = center.getBoundingBox().inflate(radius);
         final DamageSource srcFinal = src;
-        for (LivingEntity ent : center.level().getEntitiesOfClass(LivingEntity.class, aabb, e -> e.isAlive())) {
+        for (LivingEntity ent : center.level().getEntitiesOfClass(LivingEntity.class, aabb, LivingEntity::isAlive)) {
             // tick 上下文中，使用 damageAttacker 控制是否伤害中心实体；damageVictim 无语义
             if (!eff.damageAttacker && ent == center) continue;
             if (ent.invulnerableTime > 0) continue;
-            if (!eff.attachElement) {
-                DamageAttachmentGuards.runAsNonAttachable(() -> ent.hurt(srcFinal, finalDamage));
-            } else {
-                ent.hurt(srcFinal, finalDamage);
-            }
+
+            ent.hurt(srcFinal, finalDamage);
         }
     }
 
@@ -584,11 +693,36 @@ public class ElementReactionHandler {
      */
     private static void applyExtraDamageFromTick(LivingEntity center, ElementReactionRegistry.ReactionEffect eff, int elementsAmount) {
         if (center == null || center.level().isClientSide()) return;
-        // 计算伤害：优先使用最近攻击者的星耀祝福，否则回退为中心实体自身
-        LivingEntity approxAttacker = center.getLastHurtByMob();
-        float astral = (float) (approxAttacker != null
-                ? approxAttacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING)
-                : center.getAttributeValue(ModAttributes.ASTRAL_BLESSING));
+        // 计算伤害：使用最后一个触发燃烧反应的攻击者的星耀祝福
+        // 燃烧反应需要火元素+自然元素，找到最后附着的那个元素的攻击者
+        ElementContainerAttachment container = center.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        
+        // 获取火元素和自然元素的最后附着时间和攻击者
+        long fireTime = container.getLastApplied("fire");
+        long natureTime = container.getLastApplied("nature");
+        int lastAttackerId = -1;
+        
+        // 使用最后附着的元素的攻击者（即触发燃烧反应的攻击者）
+        if (fireTime > natureTime) {
+            lastAttackerId = container.getLastAttackerId("fire");
+        } else if (natureTime > fireTime) {
+            lastAttackerId = container.getLastAttackerId("nature");
+        }
+        
+        // 尝试获取攻击者的星耀祝福，失败则使用受害者自身的
+        float astral = 0f;
+        if (lastAttackerId != -1) {
+            Entity attackerEntity = center.level().getEntity(lastAttackerId);
+            if (attackerEntity instanceof LivingEntity attacker) {
+                astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+            } else {
+                // 攻击者不存在或不是生物，回退到受害者自身
+                astral = (float) center.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+            }
+        } else {
+            // 没有攻击者信息，回退到受害者自身
+            astral = (float) center.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
+        }
         float finalDamage;
         if (eff.formula != null && !eff.formula.isEmpty()) {
             if ("CalculateOverloadDamage".equals(eff.formula)) {
@@ -617,9 +751,8 @@ public class ElementReactionHandler {
                     var key = ResourceKey.create(Registries.DAMAGE_TYPE, rl);
                     Holder<DamageType> holder = reg.getHolder(key).orElse(null);
                     if (holder != null) {
-                        // direct 实体为中心实体（被击中者），attacker 使用近似攻击者（若不存在则回退中心）
-                        Entity attackerEntity = (approxAttacker != null ? approxAttacker : center);
-                        src = new DamageSource(holder, center, attackerEntity);
+                        // direct 实体为中心实体（被击中者），attacker 也使用中心实体
+                        src = new DamageSource(holder, center, center);
                     }
                 }
             }
@@ -627,24 +760,46 @@ public class ElementReactionHandler {
         if (src == null) return;
 
         // 直接对中心实体结算伤害
-        final DamageSource srcFinal = src;
-        if (!eff.attachElement) {
-            DamageAttachmentGuards.runAsNonAttachable(() -> center.hurt(srcFinal, finalDamage));
-        } else {
-            center.hurt(srcFinal, finalDamage);
-        }
+        center.hurt(src, finalDamage);
 
         // 调试：打印 extra 伤害信息
         try {
-            String attackerName = (approxAttacker != null ? approxAttacker.getName().getString() : "null");
-            float attackerAstral = (float) (approxAttacker != null ? approxAttacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING) : -1);
-            float centerAstral = (float) center.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
-            SpellElemental.LOGGER.debug("[TickExtra] center=" + center.getName().getString() + 
-                    ", approxAttacker=" + attackerName + ", approxAttackerAstral=" + attackerAstral + 
-                    ", centerAstral=" + centerAstral + 
-                    ", elementsAmount=" + elementsAmount + ", formula=" + eff.formula + 
-                    ", multiplier=" + eff.multiplier + ", dmgType=" + eff.damageType + 
-                    ", finalDamage=" + finalDamage + ", attachElement=" + eff.attachElement);
+            String attackerInfo = (lastAttackerId != -1) ? "ID:" + lastAttackerId : "none";
+            SpellElemental.LOGGER.debug("[TickExtra] center=" + center.getName().getString() +
+                    ", lastAttacker=" + attackerInfo + ", astral=" + astral +
+                    ", elementsAmount=" + elementsAmount + ", formula=" + eff.formula +
+                    ", multiplier=" + eff.multiplier + ", dmgType=" + eff.damageType +
+                    ", finalDamage=" + finalDamage);
+        } catch (Throwable ignored) {}
+    }
+
+    /**
+     * 将元素附着到实体（tick 反应上下文）。
+     * 来自 ReactionEffect 的字段：elementId/elementAmount/elementChance。
+     */
+    private static void applyAttachmentFromTick(LivingEntity entity, ElementReactionRegistry.ReactionEffect eff) {
+        if (entity == null || entity.level().isClientSide()) return;
+        if (eff == null) return;
+        String element = eff.elementId;
+        int amount = Math.max(0, eff.elementAmount);
+        float chance = eff.elementChance <= 0f ? 1.0f : eff.elementChance;
+        if (element == null || element.isEmpty() || amount <= 0) return;
+
+        // 概率
+        try {
+            if (entity.getRandom().nextFloat() > chance) return;
+        } catch (Throwable ignored) {}
+
+        ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        String key = element.toLowerCase();
+        container.setValue(key, amount);
+        long gameTime = entity.level().getGameTime();
+        container.markAppliedWithAttacker(key, gameTime, -1);
+
+        // 跟踪衰减并同步给客户端
+        ElementDecaySystem.track(entity);
+        try {
+            PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, amount));
         } catch (Throwable ignored) {}
     }
 

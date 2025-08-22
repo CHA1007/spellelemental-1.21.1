@@ -1,8 +1,8 @@
-package com.chadate.spellelemental.event.element;
+package com.chadate.spellelemental.util;
 
 public class ReactionInjuryFormula {
-    public static float ElectroReactiveteDamage(float originalDamage, float reactivityMultiplier, float astralBlessing) {
-        return originalDamage * reactivityMultiplier * (1 + (5 * astralBlessing) / (astralBlessing + 1200));
+    public static float QuickenReactionDamage(float originalDamage, float reactionMultiplier, float astralBlessing) {
+        return originalDamage * reactionMultiplier * (1 + (5 * astralBlessing) / (astralBlessing + 1200));
     }
 
     public static float CalculateOverloadDamage(float elementsAmount, float reactionMultiplier, float astralBlessing) {

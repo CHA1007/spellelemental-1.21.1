@@ -1,4 +1,4 @@
-package com.chadate.spellelemental.attribute;
+package com.chadate.spellelemental.register;
 
 import com.chadate.spellelemental.SpellElemental;
 import net.minecraft.core.registries.Registries;

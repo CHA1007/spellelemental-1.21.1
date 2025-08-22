@@ -6,12 +6,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class UnifiedElementAttachmentAssets {
     private static final Map<String, String> ELEMENT_ID_TO_ICON = new ConcurrentHashMap<>();
     private static final Map<String, String> ELEMENT_ID_TO_PARTICLE = new ConcurrentHashMap<>();
+    private static final Map<String, String> ELEMENT_ID_TO_SCHOOL = new ConcurrentHashMap<>();
 
     private UnifiedElementAttachmentAssets() {}
 
     public static void clear() {
         ELEMENT_ID_TO_ICON.clear();
         ELEMENT_ID_TO_PARTICLE.clear();
+        ELEMENT_ID_TO_SCHOOL.clear();
     }
 
     public static void setIcon(String attachmentTypeOrKey, String iconResource) {
@@ -44,6 +46,37 @@ public final class UnifiedElementAttachmentAssets {
         String effect = ELEMENT_ID_TO_PARTICLE.get(key);
         if (effect != null) return effect;
         return ELEMENT_ID_TO_PARTICLE.get(toBaseKey(key));
+    }
+
+    public static void setSchool(String elementIdOrKey, String school) {
+        if (elementIdOrKey == null || elementIdOrKey.isEmpty() || school == null || school.isEmpty()) return;
+        String key = elementIdOrKey.toLowerCase();
+        ELEMENT_ID_TO_SCHOOL.put(key, school);
+        ELEMENT_ID_TO_SCHOOL.put(toBaseKey(key), school);
+    }
+
+    public static String getSchool(String elementKeyOrAttachmentType) {
+        if (elementKeyOrAttachmentType == null) return null;
+        String key = elementKeyOrAttachmentType.toLowerCase();
+        String s = ELEMENT_ID_TO_SCHOOL.get(key);
+        if (s != null) return s;
+        return ELEMENT_ID_TO_SCHOOL.get(toBaseKey(key));
+    }
+
+    /**
+     * 根据学派名查找一个已注册的元素ID（返回首个匹配项）。
+     * 学派与元素ID均大小写不敏感。
+     */
+    public static String getElementIdBySchool(String schoolName) {
+        if (schoolName == null || schoolName.isEmpty()) return null;
+        String target = schoolName.toLowerCase();
+        for (Map.Entry<String, String> e : ELEMENT_ID_TO_SCHOOL.entrySet()) {
+            String s = e.getValue();
+            if (s != null && s.equalsIgnoreCase(target)) {
+                return toBaseKey(e.getKey());
+            }
+        }
+        return null;
     }
 
     private static String toBaseKey(String key) {

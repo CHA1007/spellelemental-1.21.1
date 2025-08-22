@@ -1,50 +1,49 @@
 {
   "reaction_id": "superconduct",
   "trigger_type": "damage",
+  "consume_elements": true,
   "ordered": [
-    { "source": "ice", "target": "lightning",  "consume": { "source": 200, "target": 200 },
+    { "source": "ice", "target": "lightning",
       "effects": {
         "damage": [
           {
             "type": "aoe",
-            "multiplier": 1.5,
+            "multiplier": 0.25,
             "formula": "CalculateOverloadDamage",
             "radius": 1.5,
             "damage_type": "irons_spellbooks:ice_magic",
-            "attach_element": false,
             "damage_attacker": false,
             "damage_victim": true
           }
         ],
         "attribute":[
             {
-                "attribute_id": "spellelmental:physical_damage_resist",
+                "attribute_id": "spellelemental:physical_damage_resist",
                 "type": "add",
-                "value": 0.4,
+                "value": -0.4,
                 "duration": 240
             }
         ]
       }
     },
-    { "source": "lightning", "target": "ice",  "consume": { "source": 200, "target": 200 },
+    { "source": "lightning", "target": "ice",
       "effects": {
         "damage": [
           {
             "type": "aoe",
-            "multiplier": 1.5,
+            "multiplier": 0.25,
             "formula": "CalculateOverloadDamage",
             "radius": 1.5,
             "damage_type": "irons_spellbooks:ice_magic",
-            "attach_element": false,
             "damage_attacker": false,
             "damage_victim": true
           }
         ],
         "attribute":[
             {
-                "attribute_id": "spellelmental:physical_damage_resist",
+                "attribute_id": "spellelemental:physical_damage_resist",
                 "type": "add",
-                "value": 0.4,
+                "value": -0.4,
                 "duration": 240
             }
         ]

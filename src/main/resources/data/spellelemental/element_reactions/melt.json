@@ -1,8 +1,9 @@
 {
   "reaction_id": "melt",
   "trigger_type": "damage",
+  "consume_elements": true,
   "ordered": [
-    { "source": "fire", "target": "ice",  "consume": { "source": 200, "target": 200 },
+    { "source": "fire", "target": "ice",
       "effects": {
         "damage": [
           {
@@ -13,7 +14,7 @@
         ]
       }
     },
-    { "source": "ice",  "target": "fire", "consume": { "source": 200, "target": 100 },
+    { "source": "ice",  "target": "fire",
       "effects": {
       "damage": [
         {

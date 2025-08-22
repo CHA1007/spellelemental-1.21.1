@@ -1,16 +1,6 @@
 {
   "element_id": "ice",
-  "display_name": "Ice Element",
-  "attachment_type": "ice_element",
-  "type": "damage_source",
-  "damage_source_conditions": {
-    "damage_source_patterns": ["ice_magic"]
-  },
-  "effects": {
-    "duration": 200,
-    "min_damage": 0.0,
-    "apply_chance":1
-  },
+  "school": "irons_spellbooks:ice",
   "visual": {
     "particle_effect": "irons_spellbooks:snowflake",
     "icon": "spellelemental:textures/elements/ice_element.png"

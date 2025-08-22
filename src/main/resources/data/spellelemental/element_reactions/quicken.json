@@ -1,0 +1,29 @@
+{
+  "reaction_id": "quicken",
+  "trigger_type": "damage",
+  "consume_elements": true,
+  "ordered": [
+    { "source": "lightning", "target": "nature",
+      "effects": {
+        "attachment": [
+          {
+            "element_id": "quicken",
+            "amount": 200,
+            "chance": 1.0
+          }
+        ]
+      }
+    },
+    { "source": "nature",  "target": "lightning",
+      "effects": {
+        "attachment": [
+          {
+            "element_id": "quicken",
+            "amount": 200,
+            "chance": 1.0
+          }
+        ]
+      }
+    }
+  ]
+}

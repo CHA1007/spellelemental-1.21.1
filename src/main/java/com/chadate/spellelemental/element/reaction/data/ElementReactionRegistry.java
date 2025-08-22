@@ -23,11 +23,7 @@ public final class ElementReactionRegistry {
      * value 为 reaction_id
      */
     private static final Map<String, String> DAMAGE_COMBO_INDEX = new HashMap<>();
-    /**
-     * damage 类型组合的消耗量索引：
-     * key 同上；value 为长度2的数组，index0=source消耗，index1=target消耗。
-     */
-    private static final Map<String, int[]> DAMAGE_CONSUME_INDEX = new HashMap<>();
+    // 移除消耗量索引，新机制：前者消耗后手全部附着量，后手完全消失
 
     /**
      * 反应效果注册：reaction_id -> effects 列表
@@ -45,8 +41,12 @@ public final class ElementReactionRegistry {
     private static final Map<String, List<AttributeEffect>> ATTRIBUTE_EFFECTS = new HashMap<>();
 
     // -------------- tick 需求/消耗 --------------
-    /** reaction_id -> TickRule */
-    private static final Map<String, TickRule> TICK_RULES = new HashMap<>();
+    /** reaction_id -> TickRule 列表（支持变体） */
+    private static final Map<String, List<TickRule>> TICK_RULES = new HashMap<>();
+
+    // -------------- 反应是否消耗元素（damage触发） --------------
+    /** reaction_id -> 是否消耗元素（默认 true） */
+    private static final Map<String, Boolean> REACTION_CONSUME_FLAG = new HashMap<>();
 
     private ElementReactionRegistry() {}
 
@@ -55,11 +55,11 @@ public final class ElementReactionRegistry {
         DAMAGE_REACTIONS.clear();
         TICK_REACTIONS.clear();
         DAMAGE_COMBO_INDEX.clear();
-        DAMAGE_CONSUME_INDEX.clear();
         REACTION_EFFECTS.clear();
         DIRECTIONAL_EFFECTS.clear();
         ATTRIBUTE_EFFECTS.clear();
         TICK_RULES.clear();
+        REACTION_CONSUME_FLAG.clear();
     }
 
     public static void add(String reactionId) {
@@ -76,6 +76,10 @@ public final class ElementReactionRegistry {
             TICK_REACTIONS.add(reactionId);
         } else {
             DAMAGE_REACTIONS.add(reactionId);
+        }
+        // 默认：damage 类型的反应消耗元素；tick 类型不使用此标志
+        if (!"tick".equals(t)) {
+            REACTION_CONSUME_FLAG.put(reactionId, Boolean.TRUE);
         }
     }
 
@@ -95,20 +99,39 @@ public final class ElementReactionRegistry {
         return Collections.unmodifiableSet(TICK_REACTIONS);
     }
 
-    /** 为 tick 反应设置规则（覆盖式）。*/
+    // -------------- consume flag API --------------
+    public static void setConsumeFlag(String reactionId, boolean consume) {
+        if (reactionId == null || reactionId.isBlank()) return;
+        REACTION_CONSUME_FLAG.put(reactionId, consume);
+    }
+
+    /** 若未配置，默认返回 true（即消耗元素） */
+    public static boolean shouldConsumeElements(String reactionId) {
+        Boolean v = REACTION_CONSUME_FLAG.get(reactionId);
+        return v == null ? true : v;
+    }
+
+    /** 为 tick 反应追加一个规则（支持多个变体）。*/
     public static void setTickRule(String reactionId, Map<String, Integer> requirements, Map<String, Integer> consume, List<ReactionEffect> effects, int interval) {
         if (reactionId == null || reactionId.isBlank()) return;
         Map<String, Integer> req = normalizeElemIntMap(requirements);
         Map<String, Integer> con = normalizeElemIntMap(consume);
         List<ReactionEffect> effs = effects == null ? Collections.emptyList() : new ArrayList<>(effects);
         int iv = Math.max(1, interval);
-        TICK_RULES.put(reactionId, new TickRule(req, con, effs, iv));
+        TICK_RULES.computeIfAbsent(reactionId, k -> new ArrayList<>()).add(new TickRule(req, con, effs, iv));
     }
 
-    /** 获取某 tick 反应的规则，若无返回空规则。*/
+    /** 获取某 tick 反应的所有规则（变体）。若无返回空列表。*/
+    public static List<TickRule> getTickRules(String reactionId) {
+        List<TickRule> list = TICK_RULES.get(reactionId);
+        return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
+    }
+
+    /** 兼容旧调用：返回第一个规则或空规则。*/
     public static TickRule getTickRule(String reactionId) {
-        TickRule r = TICK_RULES.get(reactionId);
-        return r == null ? new TickRule(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), 1) : r;
+        List<TickRule> list = TICK_RULES.get(reactionId);
+        if (list == null || list.isEmpty()) return new TickRule(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), 1);
+        return list.get(0);
     }
 
     private static Map<String, Integer> normalizeElemIntMap(Map<String, Integer> in) {
@@ -136,25 +159,22 @@ public final class ElementReactionRegistry {
         if (commutative) {
             String key = makeUnorderedKey(a, b);
             DAMAGE_COMBO_INDEX.put(key, reactionId);
-            DAMAGE_CONSUME_INDEX.putIfAbsent(key, new int[]{1, 1});
         } else {
             String key = makeOrderedKey(a, b);
             DAMAGE_COMBO_INDEX.put(key, reactionId);
-            DAMAGE_CONSUME_INDEX.putIfAbsent(key, new int[]{1, 1});
         }
     }
 
     /**
-     * 为有序组合设置自定义消耗量。
+     * 为有序组合建立索引（新机制：不再需要消耗量参数）。
      */
-    public static void indexDamageOrderedWithConsume(String reactionId, String source, String target, int consumeSource, int consumeTarget) {
+    public static void indexDamageOrdered(String reactionId, String source, String target) {
         if (reactionId == null || reactionId.isBlank()) return;
         String a = safeElem(source);
         String b = safeElem(target);
         if (a.isEmpty() || b.isEmpty()) return;
         String key = makeOrderedKey(a, b);
         DAMAGE_COMBO_INDEX.put(key, reactionId);
-        DAMAGE_CONSUME_INDEX.put(key, new int[]{Math.max(0, consumeSource), Math.max(0, consumeTarget)});
     }
 
     /** 查找 damage 组合（兼容无序/有序）。返回匹配到的 reaction_id 或 null。 */
@@ -169,18 +189,7 @@ public final class ElementReactionRegistry {
         return DAMAGE_COMBO_INDEX.get(makeUnorderedKey(a, b));
     }
 
-    /** 获取指定方向的消耗量，返回长度2数组，默认 {1,1}。 */
-    public static int[] getDamageConsumeFor(String source, String target) {
-        String a = safeElem(source);
-        String b = safeElem(target);
-        if (a.isEmpty() || b.isEmpty()) return new int[]{1,1};
-        int[] v = DAMAGE_CONSUME_INDEX.get(makeOrderedKey(a, b));
-        if (v != null) return new int[]{v[0], v[1]};
-        // 对无序组合，消耗视为对称，两侧同值（取存储或默认1）
-        v = DAMAGE_CONSUME_INDEX.get(makeUnorderedKey(a, b));
-        if (v != null) return new int[]{v[0], v[1]};
-        return new int[]{1,1};
-    }
+    // 移除 getDamageConsumeFor 方法，新机制不需要预定义消耗量
 
     public static boolean hasAnyDamageCombos() {
         return !DAMAGE_COMBO_INDEX.isEmpty();
@@ -268,42 +277,90 @@ public final class ElementReactionRegistry {
         public final String formula;         // 可选公式名
         public final float radius;           // 仅 aoe 使用
         public final String damageType;      // 可选伤害类型 RL
-        public final boolean attachElement;  // AOE 造成的伤害是否会引发元素附着/反应（默认 true）
-        public final boolean damageAttacker; // 是否对攻击者结算伤害（默认 true，保持当前行为）
-        public final boolean damageVictim;   // 是否对受击者结算伤害（默认 false，保持当前行为）
+        public final boolean damageAttacker; // 是否伤害攻击者（默认 false）
+        public final boolean damageVictim;   // 是否伤害受害者（默认 true）
+        
+        // ---- 元素附着/消耗 扩展字段（可选）----
+        // 支持 effects.attachment / effects.consume 这类元素操作
+        // 当 type 为 "attachment" 或 "consume" 时才有意义
+        public final String elementId;       // 目标元素ID（如 quicken）
+        public final int elementAmount;      // 元素数量/强度
+        public final float elementChance;    // 触发概率 [0,1]
+        public final int elementDuration;    // 可选：持续时间（tick），0 表示未指定
+        public final String elementOp;       // 操作类型："attachment" 或 "consume"
 
         public ReactionEffect(String type, float multiplier, String formula) {
-            this.type = type == null ? "" : type.trim().toLowerCase();
+            this.type = type;
             this.multiplier = multiplier;
-            this.formula = formula == null ? "" : formula.trim();
+            this.formula = formula;
             this.radius = 0f;
-            this.damageType = "";
-            this.attachElement = true;
+            this.damageType = null;
             this.damageAttacker = true;
             this.damageVictim = false;
+            // 元素操作默认值
+            this.elementId = null;
+            this.elementAmount = 0;
+            this.elementChance = 0f;
+            this.elementDuration = 0;
+            this.elementOp = null;
         }
 
-        public ReactionEffect(String type, float multiplier, String formula, float radius, String damageType, boolean attachElement) {
-            this.type = type == null ? "" : type.trim().toLowerCase();
+        public ReactionEffect(String type, float multiplier, String formula, float radius, String damageType) {
+            this.type = type;
             this.multiplier = multiplier;
             this.formula = formula == null ? "" : formula.trim();
             this.radius = radius;
             this.damageType = damageType == null ? "" : damageType.trim();
-            this.attachElement = attachElement;
-            this.damageAttacker = true;
-            this.damageVictim = false;
+            this.damageAttacker = false;
+            this.damageVictim = true;
+            // 元素操作默认值
+            this.elementId = null;
+            this.elementAmount = 0;
+            this.elementChance = 0f;
+            this.elementDuration = 0;
+            this.elementOp = null;
         }
 
-        public ReactionEffect(String type, float multiplier, String formula, float radius, String damageType, boolean attachElement,
+        public ReactionEffect(String type, float multiplier, String formula, float radius, String damageType,
                                boolean damageAttacker, boolean damageVictim) {
             this.type = type == null ? "" : type.trim().toLowerCase();
             this.multiplier = multiplier;
             this.formula = formula == null ? "" : formula.trim();
             this.radius = radius;
             this.damageType = damageType == null ? "" : damageType.trim();
-            this.attachElement = attachElement;
             this.damageAttacker = damageAttacker;
             this.damageVictim = damageVictim;
+            // 元素操作默认值
+            this.elementId = null;
+            this.elementAmount = 0;
+            this.elementChance = 0f;
+            this.elementDuration = 0;
+            this.elementOp = null;
+        }
+
+        /**
+         * 元素操作效果构造器（数据驱动）
+         * 当 type 为 "attachment" 或 "consume" 时，使用该构造函数。
+         * @param type           效果类型（attachment / consume）
+         * @param elementId      目标元素ID
+         * @param elementAmount  数量/强度
+         * @param elementChance  触发概率 [0,1]
+         * @param elementDuration 可选持续时间（tick），无需可填 0
+         */
+        public ReactionEffect(String type, String elementId, int elementAmount, float elementChance, int elementDuration) {
+            this.type = type == null ? "" : type.trim().toLowerCase();
+            this.multiplier = 0f;
+            this.formula = "";
+            this.radius = 0f;
+            this.damageType = "";
+            this.damageAttacker = false;
+            this.damageVictim = true;
+
+            this.elementId = elementId == null ? null : elementId.trim().toLowerCase();
+            this.elementAmount = elementAmount;
+            this.elementChance = elementChance;
+            this.elementDuration = elementDuration;
+            this.elementOp = this.type; // 与 type 一致（attachment / consume）
         }
     }
 

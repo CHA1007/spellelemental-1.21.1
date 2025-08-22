@@ -47,6 +47,11 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                 String triggerType = root.has("trigger_type") && root.get("trigger_type").isJsonPrimitive()
                         ? root.get("trigger_type").getAsString() : null;
                 String trigger = triggerType == null ? "damage" : triggerType.trim().toLowerCase();
+                // 读取是否消耗元素（仅 damage 类型有意义），默认 true
+                boolean consumeElements = true;
+                if (root.has("consume_elements") && root.get("consume_elements").isJsonPrimitive()) {
+                    try { consumeElements = root.get("consume_elements").getAsBoolean(); } catch (Exception ignore) {}
+                }
 
                 if (reactionId == null || reactionId.isBlank()) {
                     SpellElemental.LOGGER.error("元素反应配置缺少 reaction_id: {}", id);
@@ -59,10 +64,176 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                         err++;
                         continue;
                     }
-                    // 解析 tick 类型：requirements、consume 以及可选 effects
-                    // requirements: { "fire": 100, "ice": 50 }
-                    // consume: { "fire": 20, "ice": 10 }
-                    // effects: 支持与 damage 相同的结构（数组或分组对象 {"damage":[...]}）
+                    // 新增：支持变体写法 variants: [ { requirements, consume, interval, effects }, ... ]
+                    if (root.has("variants") && root.get("variants").isJsonArray()) {
+                        JsonArray vars = root.getAsJsonArray("variants");
+                        for (JsonElement varEl : vars) {
+                            if (!varEl.isJsonObject()) continue;
+                            JsonObject var = varEl.getAsJsonObject();
+                            // 解析单变体 requirements/consume
+                            java.util.Map<String, Integer> reqMap = new java.util.HashMap<>();
+                            if (var.has("requirements") && var.get("requirements").isJsonObject()) {
+                                JsonObject req = var.getAsJsonObject("requirements");
+                                for (Map.Entry<String, JsonElement> en : req.entrySet()) {
+                                    if (en.getValue().isJsonPrimitive()) {
+                                        reqMap.put(en.getKey(), Math.max(0, en.getValue().getAsInt()));
+                                    }
+                                }
+                            }
+                            java.util.Map<String, Integer> conMap = new java.util.HashMap<>();
+                            if (var.has("consume") && var.get("consume").isJsonObject()) {
+                                JsonObject con = var.getAsJsonObject("consume");
+                                for (Map.Entry<String, JsonElement> en : con.entrySet()) {
+                                    if (en.getValue().isJsonPrimitive()) {
+                                        conMap.put(en.getKey(), Math.max(0, en.getValue().getAsInt()));
+                                    }
+                                }
+                            }
+                            // 解析 interval
+                            int interval = 1;
+                            if (var.has("interval") && var.get("interval").isJsonPrimitive()) {
+                                try { interval = Math.max(1, var.get("interval").getAsInt()); } catch (Exception ignore) { interval = 1; }
+                            } else if (root.has("interval") && root.get("interval").isJsonPrimitive()) {
+                                // 兼容：变体未指定则回退根级 interval
+                                try { interval = Math.max(1, root.get("interval").getAsInt()); } catch (Exception ignore) { interval = 1; }
+                            }
+                            // 解析 effects（兼容数组或 {"damage": [...]} 分组）
+                            java.util.List<ElementReactionRegistry.ReactionEffect> tickEffects = new java.util.ArrayList<>();
+                            if (var.has("effects")) {
+                                if (var.get("effects").isJsonArray()) {
+                                    JsonArray effects = var.getAsJsonArray("effects");
+                                    for (JsonElement effEl : effects) {
+                                        if (!effEl.isJsonObject()) continue;
+                                        JsonObject eff = effEl.getAsJsonObject();
+                                        String type = eff.has("type") && eff.get("type").isJsonPrimitive() ? eff.get("type").getAsString() : "";
+                                        // 支持数组写法中直接使用 type: attachment/consume
+                                        if ("attachment".equalsIgnoreCase(type) || "consume".equalsIgnoreCase(type)) {
+                                            String elemId = eff.has("element") && eff.get("element").isJsonPrimitive() ? eff.get("element").getAsString()
+                                                    : (eff.has("element_id") && eff.get("element_id").isJsonPrimitive() ? eff.get("element_id").getAsString() : null);
+                                            int amount = eff.has("amount") && eff.get("amount").isJsonPrimitive() ? eff.get("amount").getAsInt()
+                                                    : (eff.has("value") && eff.get("value").isJsonPrimitive() ? eff.get("value").getAsInt() : 0);
+                                            float chance = eff.has("chance") && eff.get("chance").isJsonPrimitive() ? eff.get("chance").getAsFloat() : 1.0f;
+                                            int duration = eff.has("duration") && eff.get("duration").isJsonPrimitive() ? eff.get("duration").getAsInt() : 0;
+                                            tickEffects.add(new ElementReactionRegistry.ReactionEffect(type, elemId, amount, chance, duration));
+                                        } else {
+                                            float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                            String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";
+                                            float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive() ? eff.get("radius").getAsFloat() : 0f;
+                                            String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive() ? eff.get("damage_type").getAsString() : "";
+                                            boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                            boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                            tickEffects.add((radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || damageVictim)
+                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
+                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula));
+                                        }
+                                    }
+                                } else if (var.get("effects").isJsonObject()) {
+                                    JsonObject grouped = var.getAsJsonObject("effects");
+                                    if (grouped.has("damage") && grouped.get("damage").isJsonArray()) {
+                                        JsonArray effects = grouped.getAsJsonArray("damage");
+                                        for (JsonElement effEl : effects) {
+                                            if (!effEl.isJsonObject()) continue;
+                                            JsonObject eff = effEl.getAsJsonObject();
+                                            String type = eff.has("type") && eff.get("type").isJsonPrimitive() ? eff.get("type").getAsString() : "";
+                                            float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                            String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";
+                                            float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive() ? eff.get("radius").getAsFloat() : 0f;
+                                            String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive() ? eff.get("damage_type").getAsString() : "";
+                                            boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                            boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                            tickEffects.add((radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || damageVictim)
+                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
+                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula));
+                                        }
+                                    }
+                                    // 新增：分组写法 effects.attachment
+                                    if (grouped.has("attachment") && grouped.get("attachment").isJsonArray()) {
+                                        JsonArray attArr = grouped.getAsJsonArray("attachment");
+                                        for (JsonElement attEl : attArr) {
+                                            if (!attEl.isJsonObject()) continue;
+                                            JsonObject att = attEl.getAsJsonObject();
+                                            String elemId = att.has("element") && att.get("element").isJsonPrimitive() ? att.get("element").getAsString()
+                                                    : (att.has("element_id") && att.get("element_id").isJsonPrimitive() ? att.get("element_id").getAsString() : null);
+                                            int amount = att.has("amount") && att.get("amount").isJsonPrimitive() ? att.get("amount").getAsInt()
+                                                    : (att.has("value") && att.get("value").isJsonPrimitive() ? att.get("value").getAsInt() : 0);
+                                            float chance = att.has("chance") && att.get("chance").isJsonPrimitive() ? att.get("chance").getAsFloat() : 1.0f;
+                                            int duration = att.has("duration") && att.get("duration").isJsonPrimitive() ? att.get("duration").getAsInt() : 0;
+                                            tickEffects.add(new ElementReactionRegistry.ReactionEffect("attachment", elemId, amount, chance, duration));
+                                        }
+                                    }
+                                }
+                            } else if (root.has("effects")) {
+                                // 兼容：变体没写 effects 则回退根级 effects
+                                if (root.get("effects").isJsonArray()) {
+                                    JsonArray effects = root.getAsJsonArray("effects");
+                                    for (JsonElement effEl : effects) {
+                                        if (!effEl.isJsonObject()) continue;
+                                        JsonObject eff = effEl.getAsJsonObject();
+                                        String type = eff.has("type") && eff.get("type").isJsonPrimitive() ? eff.get("type").getAsString() : "";
+                                        if ("attachment".equalsIgnoreCase(type) || "consume".equalsIgnoreCase(type)) {
+                                            String elemId = eff.has("element") && eff.get("element").isJsonPrimitive() ? eff.get("element").getAsString()
+                                                    : (eff.has("element_id") && eff.get("element_id").isJsonPrimitive() ? eff.get("element_id").getAsString() : null);
+                                            int amount = eff.has("amount") && eff.get("amount").isJsonPrimitive() ? eff.get("amount").getAsInt()
+                                                    : (eff.has("value") && eff.get("value").isJsonPrimitive() ? eff.get("value").getAsInt() : 0);
+                                            float chance = eff.has("chance") && eff.get("chance").isJsonPrimitive() ? eff.get("chance").getAsFloat() : 1.0f;
+                                            int duration = eff.has("duration") && eff.get("duration").isJsonPrimitive() ? eff.get("duration").getAsInt() : 0;
+                                            tickEffects.add(new ElementReactionRegistry.ReactionEffect(type, elemId, amount, chance, duration));
+                                        } else {
+                                            float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                            String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";
+                                            float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive() ? eff.get("radius").getAsFloat() : 0f;
+                                            String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive() ? eff.get("damage_type").getAsString() : "";
+                                            boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                            boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                            tickEffects.add((radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || damageVictim)
+                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
+                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula));
+                                        }
+                                    }
+                                } else if (root.get("effects").isJsonObject()) {
+                                    JsonObject grouped = root.getAsJsonObject("effects");
+                                    if (grouped.has("damage") && grouped.get("damage").isJsonArray()) {
+                                        JsonArray effects = grouped.getAsJsonArray("damage");
+                                        for (JsonElement effEl : effects) {
+                                            if (!effEl.isJsonObject()) continue;
+                                            JsonObject eff = effEl.getAsJsonObject();
+                                            String type = eff.has("type") && eff.get("type").isJsonPrimitive() ? eff.get("type").getAsString() : "";
+                                            float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                            String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";
+                                            float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive() ? eff.get("radius").getAsFloat() : 0f;
+                                            String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive() ? eff.get("damage_type").getAsString() : "";
+                                            boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                            boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                            tickEffects.add((radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || damageVictim)
+                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
+                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula));
+                                        }
+                                    }
+                                    // 新增：根级 effects.attachment 回退
+                                    if (grouped.has("attachment") && grouped.get("attachment").isJsonArray()) {
+                                        JsonArray attArr = grouped.getAsJsonArray("attachment");
+                                        for (JsonElement attEl : attArr) {
+                                            if (!attEl.isJsonObject()) continue;
+                                            JsonObject att = attEl.getAsJsonObject();
+                                            String elemId = att.has("element") && att.get("element").isJsonPrimitive() ? att.get("element").getAsString()
+                                                    : (att.has("element_id") && att.get("element_id").isJsonPrimitive() ? att.get("element_id").getAsString() : null);
+                                            int amount = att.has("amount") && att.get("amount").isJsonPrimitive() ? att.get("amount").getAsInt()
+                                                    : (att.has("value") && att.get("value").isJsonPrimitive() ? att.get("value").getAsInt() : 0);
+                                            float chance = att.has("chance") && att.get("chance").isJsonPrimitive() ? att.get("chance").getAsFloat() : 1.0f;
+                                            int duration = att.has("duration") && att.get("duration").isJsonPrimitive() ? att.get("duration").getAsInt() : 0;
+                                            tickEffects.add(new ElementReactionRegistry.ReactionEffect("attachment", elemId, amount, chance, duration));
+                                        }
+                                    }
+                                }
+                            }
+                            ElementReactionRegistry.setTickRule(reactionId.trim(), reqMap, conMap, tickEffects, interval);
+                        }
+                        ElementReactionRegistry.add(reactionId.trim(), "tick");
+                        ok++;
+                        continue;
+                    }
+
+                    // 旧写法：单一 requirements/consume/effects
                     java.util.Map<String, Integer> reqMap = new java.util.HashMap<>();
                     if (root.has("requirements") && root.get("requirements").isJsonObject()) {
                         JsonObject req = root.getAsJsonObject("requirements");
@@ -81,13 +252,10 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                             }
                         }
                     }
-
                     java.util.List<ElementReactionRegistry.ReactionEffect> tickEffects = new java.util.ArrayList<>();
                     int interval = 1;
                     if (root.has("interval") && root.get("interval").isJsonPrimitive()) {
-                        try {
-                            interval = Math.max(1, root.get("interval").getAsInt());
-                        } catch (Exception ignore) { interval = 1; }
+                        try { interval = Math.max(1, root.get("interval").getAsInt()); } catch (Exception ignore) { interval = 1; }
                     }
                     if (root.has("effects")) {
                         if (root.get("effects").isJsonArray()) {
@@ -95,25 +263,16 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                             for (JsonElement effEl : effects) {
                                 if (!effEl.isJsonObject()) continue;
                                 JsonObject eff = effEl.getAsJsonObject();
-                                String type = eff.has("type") && eff.get("type").isJsonPrimitive()
-                                        ? eff.get("type").getAsString() : "";
-                                float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
-                                        ? eff.get("multiplier").getAsFloat() : 1.0f;
-                                String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
-                                        ? eff.get("formula").getAsString() : "";
-                                float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
-                                        ? eff.get("radius").getAsFloat() : 0f;
-                                String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
-                                        ? eff.get("damage_type").getAsString() : "";
-                                boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
-                                // tick AOE 默认不伤害中心实体（与旧行为一致）；仅当显式为 true 时才伤害中心
+                                String type = eff.has("type") && eff.get("type").isJsonPrimitive() ? eff.get("type").getAsString() : "";
+                                float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";
+                                float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive() ? eff.get("radius").getAsFloat() : 0f;
+                                String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive() ? eff.get("damage_type").getAsString() : "";
                                 boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
                                 boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
-                                tickEffects.add(
-                                        (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
-                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
-                                                : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
-                                );
+                                tickEffects.add((radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || damageVictim)
+                                        ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
+                                        : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula));
                             }
                         } else if (root.get("effects").isJsonObject()) {
                             JsonObject grouped = root.getAsJsonObject("effects");
@@ -122,25 +281,16 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                 for (JsonElement effEl : effects) {
                                     if (!effEl.isJsonObject()) continue;
                                     JsonObject eff = effEl.getAsJsonObject();
-                                    String type = eff.has("type") && eff.get("type").isJsonPrimitive()
-                                            ? eff.get("type").getAsString() : "";
-                                    float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive()
-                                            ? eff.get("multiplier").getAsFloat() : 1.0f;
-                                    String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive()
-                                            ? eff.get("formula").getAsString() : "";
-                                    float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive()
-                                            ? eff.get("radius").getAsFloat() : 0f;
-                                    String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
-                                            ? eff.get("damage_type").getAsString() : "";
-                                    boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
-                                    // tick AOE 默认不伤害中心实体（与旧行为一致）；仅当显式为 true 时才伤害中心
+                                    String type = eff.has("type") && eff.get("type").isJsonPrimitive() ? eff.get("type").getAsString() : "";
+                                    float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
+                                    String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";
+                                    float radius = eff.has("radius") && eff.get("radius").isJsonPrimitive() ? eff.get("radius").getAsFloat() : 0f;
+                                    String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive() ? eff.get("damage_type").getAsString() : "";
                                     boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
                                     boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
-                                    tickEffects.add(
-                                            (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
-                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
-                                                    : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
-                                    );
+                                    tickEffects.add((radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || damageVictim)
+                                            ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
+                                            : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula));
                                 }
                             }
                         }
@@ -156,6 +306,8 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                 ElementReactionRegistry.add(reactionId.trim(), trigger);
                 // 若为 damage 类型，建立组合索引（仅支持新结构 ordered/elements）
                 if ("damage".equals(trigger)) {
+                    // 设置是否消耗元素标志
+                    ElementReactionRegistry.setConsumeFlag(reactionId.trim(), consumeElements);
                     // 优先处理 ordered；允许两种形态：
                     //  1) 数组对：["a","b"]
                     //  2) 对象：{"source":"a","target":"b","consume":{"source":1,"target":2}}
@@ -175,15 +327,10 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                 JsonObject obj = el.getAsJsonObject();
                                 String src = obj.has("source") ? obj.get("source").getAsString() : null;
                                 String tgt = obj.has("target") ? obj.get("target").getAsString() : null;
-                                int cs = 1, ct = 1;
-                                if (obj.has("consume") && obj.get("consume").isJsonObject()) {
-                                    JsonObject c = obj.getAsJsonObject("consume");
-                                    if (c.has("source")) cs = Math.max(0, c.get("source").getAsInt());
-                                    if (c.has("target")) ct = Math.max(0, c.get("target").getAsInt());
-                                }
+                                // 新机制：不再解析消耗量，前者消耗后手全部附着量
                                 if (src != null && tgt != null) {
-                                    ElementReactionRegistry.indexDamageOrderedWithConsume(
-                                            reactionId.trim(), src, tgt, cs, ct
+                                    ElementReactionRegistry.indexDamageOrdered(
+                                            reactionId.trim(), src, tgt
                                     );
                                     // 解析该方向下的 effects（可选）：兼容数组或分组对象({ "damage": [...] })
                                     if (obj.has("effects")) {
@@ -202,13 +349,12 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                                         ? eff.get("radius").getAsFloat() : 0f;
                                                 String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
                                                         ? eff.get("damage_type").getAsString() : "";
-                                                boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
-                                                boolean damageAttacker = !eff.has("damage_attacker") || (eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean());
-                                                boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                                boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                                boolean damageVictim = !eff.has("damage_victim") || (eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean());
                                                 ElementReactionRegistry.addDirectionalEffect(
                                                         src, tgt,
-                                                        (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
-                                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
+                                                        (radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || !damageVictim)
+                                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
                                                                 : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
                                                 );
                                             }
@@ -229,16 +375,51 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                                             ? eff.get("radius").getAsFloat() : 0f;
                                                     String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
                                                             ? eff.get("damage_type").getAsString() : "";
-                                                    boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
-                                                    boolean damageAttacker = !eff.has("damage_attacker") || (eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean());
-                                                    boolean damageVictim = eff.has("damage_victim") && eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean();
+                                                    boolean damageAttacker = eff.has("damage_attacker") && eff.get("damage_attacker").isJsonPrimitive() && eff.get("damage_attacker").getAsBoolean();
+                                                    boolean damageVictim = !eff.has("damage_victim") || (eff.get("damage_victim").isJsonPrimitive() && eff.get("damage_victim").getAsBoolean());
                                                     ElementReactionRegistry.addDirectionalEffect(
                                                             src, tgt,
-                                                            (radius > 0f || !damageTypeStr.isEmpty() || !attach || !damageAttacker || damageVictim)
-                                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach, damageAttacker, damageVictim)
+                                                            (radius > 0f || !damageTypeStr.isEmpty() || !damageAttacker || !damageVictim)
+                                                                    ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, damageAttacker, damageVictim)
                                                                     : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
                                                     );
+                                                }
+                                            }
+                                            // 解析有序方向下的属性效果组
+                                            if (grouped.has("attribute") && grouped.get("attribute").isJsonArray()) {
+                                                JsonArray attrEffs = grouped.getAsJsonArray("attribute");
+                                                for (JsonElement ae : attrEffs) {
+                                                    if (!ae.isJsonObject()) continue;
+                                                    JsonObject aobj = ae.getAsJsonObject();
+                                                    String attrId = aobj.has("attribute_id") && aobj.get("attribute_id").isJsonPrimitive() ? aobj.get("attribute_id").getAsString() : "";
+                                                    String op = aobj.has("type") && aobj.get("type").isJsonPrimitive() ? aobj.get("type").getAsString() : "add";
+                                                    double val = aobj.has("value") && aobj.get("value").isJsonPrimitive() ? aobj.get("value").getAsDouble() : 0.0;
+                                                    int dur = aobj.has("duration") && aobj.get("duration").isJsonPrimitive() ? Math.max(0, aobj.get("duration").getAsInt()) : 0;
+                                                    ElementReactionRegistry.addAttributeEffect(reactionId.trim(),
+                                                            new ElementReactionRegistry.AttributeEffect(attrId, op, val, dur));
+                                                }
+                                            }
+                                            // 解析有序方向下的元素附着效果组（attachment）
+                                            if (grouped.has("attachment") && grouped.get("attachment").isJsonArray()) {
+                                                JsonArray attEffs = grouped.getAsJsonArray("attachment");
+                                                for (JsonElement ae : attEffs) {
+                                                    if (!ae.isJsonObject()) continue;
+                                                    JsonObject aobj = ae.getAsJsonObject();
+                                                    String elementId = aobj.has("element_id") && aobj.get("element_id").isJsonPrimitive()
+                                                            ? aobj.get("element_id").getAsString() : null;
+                                                    int amount = aobj.has("amount") && aobj.get("amount").isJsonPrimitive()
+                                                            ? Math.max(0, aobj.get("amount").getAsInt()) : 0;
+                                                    float chance = aobj.has("chance") && aobj.get("chance").isJsonPrimitive()
+                                                            ? aobj.get("chance").getAsFloat() : 1.0f;
+                                                    int duration = aobj.has("duration") && aobj.get("duration").isJsonPrimitive()
+                                                            ? Math.max(0, aobj.get("duration").getAsInt()) : 0;
+                                                    if (elementId != null && !elementId.isBlank() && amount > 0) {
+                                                        ElementReactionRegistry.addDirectionalEffect(
+                                                                src, tgt,
+                                                                new ElementReactionRegistry.ReactionEffect("attachment", elementId, amount, chance, duration)
+                                                        );
                                                     }
+                                                }
                                             }
                                         }
                                     }
@@ -278,11 +459,10 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                     ? eff.get("radius").getAsFloat() : 0f;
                             String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
                                     ? eff.get("damage_type").getAsString() : "";
-                            boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
                             ElementReactionRegistry.addEffect(
                                     reactionId.trim(),
-                                    (radius > 0f || !damageTypeStr.isEmpty() || !attach)
-                                            ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach)
+                                    (radius > 0f || !damageTypeStr.isEmpty())
+                                            ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr)
                                             : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
                             );
                         }
@@ -303,11 +483,10 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                         ? eff.get("radius").getAsFloat() : 0f;
                                 String damageTypeStr = eff.has("damage_type") && eff.get("damage_type").isJsonPrimitive()
                                         ? eff.get("damage_type").getAsString() : "";
-                                boolean attach = !eff.has("attach_element") || (eff.get("attach_element").isJsonPrimitive() && eff.get("attach_element").getAsBoolean());
                                 ElementReactionRegistry.addEffect(
                                         reactionId.trim(),
-                                        (radius > 0f || !damageTypeStr.isEmpty() || !attach)
-                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr, attach)
+                                        (radius > 0f || !damageTypeStr.isEmpty())
+                                                ? new ElementReactionRegistry.ReactionEffect(type, multiplier, formula, radius, damageTypeStr)
                                                 : new ElementReactionRegistry.ReactionEffect(type, multiplier, formula)
                                 );
                             }

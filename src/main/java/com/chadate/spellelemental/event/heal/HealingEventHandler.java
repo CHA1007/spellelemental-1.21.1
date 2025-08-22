@@ -1,6 +1,6 @@
 package com.chadate.spellelemental.event.heal;
 
-import com.chadate.spellelemental.attribute.ModAttributes;
+import com.chadate.spellelemental.register.ModAttributes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;

@@ -2,8 +2,6 @@ package com.chadate.spellelemental.element.attachment.data;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.element.attachment.config.UnifiedElementAttachmentConfig;
-import com.chadate.spellelemental.element.attachment.attack.ElementAttachmentRegistry;
-import com.chadate.spellelemental.element.attachment.attack.DynamicElementHandler;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
@@ -28,148 +26,52 @@ public class UnifiedElementAttachmentDataLoader extends SimpleJsonResourceReload
     }
     
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap,
+    protected void apply(Map<ResourceLocation, JsonElement> resources,
                          @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profilerFiller) {
-        
-        // 清空现有的处理器与图标映射
-        ElementAttachmentRegistry.clearHandlers();
+
+        // 仅清理与资产映射相关的数据
         UnifiedElementAttachmentAssets.clear();
-        EnvironmentalAttachmentRegistry.clear();
-        
-        SpellElemental.LOGGER.info("开始加载统一元素附着配置...");
-        
-        int damageSourceCount = 0;
-        int environmentalCount = 0;
+
+        SpellElemental.LOGGER.info("开始加载元素附着资产配置(最小化)...");
+
+        int loadedCount = 0;
         int errorCount = 0;
-        
-        for (Map.Entry<ResourceLocation, JsonElement> entry : resourceLocationJsonElementMap.entrySet()) {
-            ResourceLocation resourceLocation = entry.getKey();
-            JsonElement jsonElement = entry.getValue();
-            
+
+        for (Map.Entry<ResourceLocation, JsonElement> entry : resources.entrySet()) {
+            ResourceLocation id = entry.getKey();
+            JsonElement json = entry.getValue();
+
             try {
-                // 解析配置
-                UnifiedElementAttachmentConfig config = GSON.fromJson(jsonElement, UnifiedElementAttachmentConfig.class);
-                
-                // 验证配置
-                if (!validateConfig(config, resourceLocation)) {
+                UnifiedElementAttachmentConfig config = GSON.fromJson(json, UnifiedElementAttachmentConfig.class);
+                if (config == null || config.getElementId() == null || config.getElementId().isBlank()) {
+                    SpellElemental.LOGGER.error("元素附着配置缺少 element_id: {}", id);
                     errorCount++;
                     continue;
                 }
-                
-                // 记录图标/粒子资源到 element_id（与容器键一致）
-                if (config.getVisual() != null && config.getVisual().getIcon() != null) {
-                    UnifiedElementAttachmentAssets.setIcon(config.getElementId(), config.getVisual().getIcon());
+
+                String elementId = config.getElementId();
+                if (config.getVisual() != null) {
+                    if (config.getVisual().getIcon() != null && !config.getVisual().getIcon().isBlank()) {
+                        UnifiedElementAttachmentAssets.setIcon(elementId, config.getVisual().getIcon());
+                    }
+                    if (config.getVisual().getParticleEffect() != null && !config.getVisual().getParticleEffect().isBlank()) {
+                        UnifiedElementAttachmentAssets.setParticleEffect(elementId, config.getVisual().getParticleEffect());
+                    }
                 }
-                if (config.getVisual() != null && config.getVisual().getParticleEffect() != null) {
-                    UnifiedElementAttachmentAssets.setParticleEffect(config.getElementId(), config.getVisual().getParticleEffect());
+                if (config.getSchool() != null && !config.getSchool().isBlank()) {
+                    UnifiedElementAttachmentAssets.setSchool(elementId, config.getSchool());
                 }
-                
-                // 根据类型分发到对应的处理器
-                if (config.isDamageSourceType()) {
-                    registerDamageSourceHandler(config, resourceLocation);
-                    damageSourceCount++;
-                } else if (config.isEnvironmentalType()) {
-                    registerEnvironmentalHandler(config, resourceLocation);
-                    EnvironmentalAttachmentRegistry.add(config);
-                    environmentalCount++;
-                } else {
-                    SpellElemental.LOGGER.error("未知的附着类型: {} in {}", config.getType(), resourceLocation);
-                    errorCount++;
-                }
-                
+
+                loadedCount++;
             } catch (JsonParseException e) {
-                SpellElemental.LOGGER.error("解析元素附着配置失败: {} - {}", resourceLocation, e.getMessage());
+                SpellElemental.LOGGER.error("解析元素附着配置失败: {} - {}", id, e.getMessage());
                 errorCount++;
             } catch (Exception e) {
-                SpellElemental.LOGGER.error("加载元素附着配置时发生错误: {} - {}", resourceLocation, e.getMessage(), e);
+                SpellElemental.LOGGER.error("加载元素附着配置时发生错误: {} - {}", id, e.getMessage(), e);
                 errorCount++;
             }
         }
-        
-        SpellElemental.LOGGER.info("统一元素附着配置加载完成: {} 个伤害源附着, {} 个环境附着, {} 个错误", 
-                                 damageSourceCount, environmentalCount, errorCount);
-    }
-    
-    /**
-     * 验证配置的有效性
-     */
-    private boolean validateConfig(UnifiedElementAttachmentConfig config, ResourceLocation resourceLocation) {
-        if (config == null) {
-            SpellElemental.LOGGER.error("配置为空: {}", resourceLocation);
-            return false;
-        }
-        
-        if (config.getElementId() == null || config.getElementId().trim().isEmpty()) {
-            SpellElemental.LOGGER.error("元素ID不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        if (config.getAttachmentType() == null || config.getAttachmentType().trim().isEmpty()) {
-            SpellElemental.LOGGER.error("附着类型不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        if (config.getType() == null || config.getType().trim().isEmpty()) {
-            SpellElemental.LOGGER.error("触发类型不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        // 验证类型特定的条件
-        if (config.isDamageSourceType()) {
-            if (config.getDamageSourceConditions() == null) {
-                SpellElemental.LOGGER.error("伤害源类型配置缺少 damage_source_conditions: {}", resourceLocation);
-                return false;
-            }
-            
-            if (config.getDamageSourceConditions().getDamageSourcePatterns() == null || 
-                config.getDamageSourceConditions().getDamageSourcePatterns().isEmpty()) {
-                SpellElemental.LOGGER.error("伤害源模式不能为空: {}", resourceLocation);
-                return false;
-            }
-        } else if (config.isEnvironmentalType()) {
-            if (config.getEnvironmentalConditions() == null) {
-                SpellElemental.LOGGER.error("环境类型配置缺少 environmental_conditions: {}", resourceLocation);
-                return false;
-            }
-        }
-        
-        if (config.getEffects() == null) {
-            SpellElemental.LOGGER.error("效果配置不能为空: {}", resourceLocation);
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * 注册基于伤害源的附着处理器
-     */
-    private void registerDamageSourceHandler(UnifiedElementAttachmentConfig config, ResourceLocation resourceLocation) {
-        try {
-            DynamicElementHandler handler = new DynamicElementHandler(config);
-            ElementAttachmentRegistry.register(handler);
-            
-            SpellElemental.LOGGER.debug("注册伤害源元素附着处理器: {} -> {}", 
-                                      config.getElementId(), config.getAttachmentType());
-            
-        } catch (Exception e) {
-            SpellElemental.LOGGER.error("注册伤害源附着处理器失败: {} - {}", resourceLocation, e.getMessage(), e);
-        }
-    }
-    
-    /**
-     * 注册基于环境条件的附着处理器
-     * 注意：环境条件附着暂时通过现有的元素环境系统处理
-     * 这里仅记录配置，实际处理由 ElementsEnvironment 类负责
-     */
-    private void registerEnvironmentalHandler(UnifiedElementAttachmentConfig config, ResourceLocation resourceLocation) {
-        try {
-            SpellElemental.LOGGER.info("环境条件元素附着配置已加载: {} -> {}", 
-                                     config.getElementId(), config.getAttachmentType());
-            SpellElemental.LOGGER.info("环境条件将由现有的 ElementsEnvironment 系统处理");
-            
-        } catch (Exception e) {
-            SpellElemental.LOGGER.error("加载环境附着配置失败: {} - {}", resourceLocation, e.getMessage(), e);
-        }
+
+        SpellElemental.LOGGER.info("元素附着资产加载完成: {} 条成功, {} 条错误", loadedCount, errorCount);
     }
 }

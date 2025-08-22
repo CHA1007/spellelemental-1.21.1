@@ -1,8 +1,9 @@
 {
   "reaction_id": "overload",
   "trigger_type": "damage",
+  "consume_elements": true,
   "ordered": [
-    { "source": "fire", "target": "lightning",  "consume": { "source": 200, "target": 200 },
+    { "source": "fire", "target": "lightning",
       "effects": {
         "damage": [
           {
@@ -11,14 +12,13 @@
             "formula": "CalculateOverloadDamage",
             "radius": 1.5,
             "damage_type": "irons_spellbooks:fire_magic",
-            "attach_element": false,
             "damage_attacker": false,
             "damage_victim": true
           }
         ]
       }
     },
-    { "source": "lightning",  "target": "fire", "consume": { "source": 200, "target": 200 },
+    { "source": "lightning",  "target": "fire",
       "effects": {
         "damage": [
           {
@@ -27,7 +27,6 @@
             "formula": "CalculateOverloadDamage",
             "radius": 1.5,
             "damage_type": "irons_spellbooks:fire_magic",
-            "attach_element": false,
             "damage_attacker": false,
             "damage_victim": true
           }

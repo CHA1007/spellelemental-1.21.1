@@ -1,84 +1,89 @@
 package com.chadate.spellelemental.element.attachment.attack;
 
 
+
+import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.client.network.custom.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.config.ServerConfig;
-import com.chadate.spellelemental.element.attachment.config.UnifiedElementAttachmentConfig;
-import com.chadate.spellelemental.element.attachment.data.EnvironmentalAttachmentRegistry;
+import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
-import com.chadate.spellelemental.util.DamageAttachmentGuards;
 import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.List;
-
 public class ElementEventHandler {
+
     public static void handleElementAttachment(SpellDamageEvent event) {
+        // 只在服务端处理元素附着，客户端通过网络同步获取
+        if (event.getEntity().level().isClientSide()) {
+            return;
+        }
         LivingEntity target = event.getEntity();
-        DamageSource spellDamageSource = event.getSpellDamageSource();
-        int entityId = target.getId();
-        float damageAmount = event.getAmount();
-        // 统一的“不可附着伤害”早退：当反应伤害或其他标记的伤害到达时，不触发受伤即附着
-        if (DamageAttachmentGuards.isNonAttachable()) {
-            return;
+        String spellId = event.getSpellDamageSource().spell().getSpellId();
+        String school = event.getSpellDamageSource().spell().getSchoolType().getId().toString();
+
+        // 调试：记录元素附着处理开始时的元素状态
+        ElementContainerAttachment container = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        SpellElemental.LOGGER.info("[DEBUG] ElementAttachment START - target {} elements before: {}", 
+            target.getId(), 
+            container.snapshot());
+
+        SpellElemental.LOGGER.info("[SpellElemental] Resolved spell '{}' school: {}", spellId, school);
+
+        // 优先检查配置中的法术专属元素附着
+        String elementId = null;
+        ResourceLocation spellKey = ResourceLocation.tryParse(spellId);
+        if (spellKey != null) {
+            elementId = ServerConfig.getSpellElementOverride(spellKey);
+            if (elementId != null) {
+                SpellElemental.LOGGER.info("[SpellElemental] Using custom element '{}' for spell '{}'", elementId, spellId);
+            }
         }
-        ElementAttachmentRegistry.handleAttachment(target, spellDamageSource, entityId, damageAmount);
-
-    }
-
-    public static void handleEnvironmentalAttachment(ServerTickEvent.Post event) {
-        List<UnifiedElementAttachmentConfig> configs = EnvironmentalAttachmentRegistry.getAll();
-        if (configs.isEmpty()) return;
-
-        for (ServerLevel srv : event.getServer().getAllLevels()) {
-            srv.getEntities().getAll().forEach(entity -> {
-                if (!(entity instanceof LivingEntity living)) return;
-                for (UnifiedElementAttachmentConfig cfg : configs) {
-                    UnifiedElementAttachmentConfig.EnvironmentalConditions env = cfg.getEnvironmentalConditions();
-                    if (env == null || env.getWaterConditions() == null) continue;
-                    int interval = Math.max(1, env.getCheckInterval());
-                    if (living.tickCount % interval != 0) continue;
-                    boolean needInWater = env.getWaterConditions().isInWater();
-                    boolean needInRain = env.getWaterConditions().isInRain();
-                    boolean ok = needInWater && living.isInWaterOrBubble();
-                    if (needInRain && living.level().isRainingAt(living.blockPosition())) ok = true;
-                    if (!ok) continue;
-                    applyAttachment(living, cfg);
-                }
-            });
+        
+        // 如果没有配置专属元素，则回退到基于学派的映射
+        if (elementId == null || elementId.isBlank()) {
+            elementId = UnifiedElementAttachmentAssets.getElementIdBySchool(school);
+            if (elementId == null || elementId.isBlank()) {
+                SpellElemental.LOGGER.debug("[SpellElemental] No element mapping found for spell '{}' with school '{}'", spellId, school);
+                return;
+            }
+            SpellElemental.LOGGER.debug("[SpellElemental] Using school-based element '{}' for spell '{}'", elementId, spellId);
         }
-    }
 
-    private static void applyAttachment(LivingEntity entity, UnifiedElementAttachmentConfig cfg) {
-        ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
-        // 从服务端配置读取统一附着量（默认200）
+        // 依据配置的每法术覆盖量计算时长（找不到则回退默认）
         int duration = ServerConfig.ELEMENT_ATTACHMENT_DEFAULT.get();
-        // 仅使用 element_id 作为容器键（小写）。若缺失则跳过写入。
-        String elementKey = cfg.getElementId();
-        if (elementKey == null || elementKey.isBlank()) {
-            // 不写入，保持一致性
-            return;
+        if (spellKey != null) {
+            duration = ServerConfig.getSpellAttachmentAmount(spellKey);
         }
-        elementKey = elementKey.toLowerCase();
-        container.setValue(elementKey, duration);
-        // 记录最近附着时间（用于同体反应方向判定）
-        long gameTime = entity.level().getGameTime();
-        container.markApplied(elementKey, gameTime);
-        // 跟踪衰减，离开环境后由衰减系统自然清除
-        ElementDecaySystem.track(entity);
-        PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), elementKey, duration));
+
+        // 获取攻击者信息用于追踪
+        Entity attacker = event.getSpellDamageSource().getEntity();
+        int attackerId = (attacker != null) ? attacker.getId() : -1;
+        
+        applyAttachment(target, elementId.toLowerCase(), duration, attackerId);
+        
+        // 调试：记录元素附着处理完成后的元素状态
+        ElementContainerAttachment containerAfter = target.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        SpellElemental.LOGGER.info("[DEBUG] ElementAttachment END - target {} elements after: {}", 
+            target.getId(), 
+            containerAfter.snapshot());
     }
 
-    
+    private static void applyAttachment(LivingEntity entity, String elementKeyLower, int duration, int attackerId) {
+        ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
+        container.setValue(elementKeyLower, duration);
+        long gameTime = entity.level().getGameTime();
+        // 记录攻击者信息用于tick反应追踪
+        container.markAppliedWithAttacker(elementKeyLower, gameTime, attackerId);
+        ElementDecaySystem.track(entity);
+        PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), elementKeyLower, duration));
+    }
 
     // 当玩家开始追踪（看见）某个实体时，同步该实体的元素状态快照
     public static void onStartTracking(PlayerEvent.StartTracking event) {

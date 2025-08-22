@@ -1,16 +1,6 @@
 {
   "element_id": "lightning",
-  "display_name": "Lightning Element",
-  "attachment_type": "lightning_element",
-  "type": "damage_source",
-  "damage_source_conditions": {
-    "damage_source_patterns": ["lightning_magic"]
-  },
-  "effects": {
-    "duration": 200,
-    "min_damage": 0.0,
-    "apply_chance":1
-  },
+  "school": "irons_spellbooks:lightning",
   "visual": {
     "particle_effect": "irons_spellbooks:electricity",
     "icon": "spellelemental:textures/elements/lightning_element.png"

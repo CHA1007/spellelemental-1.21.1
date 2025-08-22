@@ -1,6 +1,6 @@
 package com.chadate.spellelemental.event.physical;
 
-import com.chadate.spellelemental.attribute.ModAttributes;
+import com.chadate.spellelemental.register.ModAttributes;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;

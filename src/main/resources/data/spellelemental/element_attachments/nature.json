@@ -1,16 +1,6 @@
 {
   "element_id": "nature",
-  "display_name": "Nature Element",
-  "attachment_type": "nature_element",
-  "type": "damage_source",
-  "damage_source_conditions": {
-    "damage_source_patterns": ["nature_magic"]
-  },
-  "effects": {
-    "duration": 200,
-    "min_damage": 0.0,
-    "apply_chance":1
-  },
+  "school": "irons_spellbooks:nature",
   "visual": {
     "particle_effect": "irons_spellbooks:acid",
     "icon": "spellelemental:textures/elements/nature_element.png"
