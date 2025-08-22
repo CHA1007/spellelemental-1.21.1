@@ -1,5 +1,9 @@
 package com.chadate.spellelemental.client.render;
 
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
+@OnlyIn(Dist.CLIENT)
 public final class ElementIconRenderConfig {
 	private static final ElementIconRenderConfig INSTANCE = new ElementIconRenderConfig();
 
