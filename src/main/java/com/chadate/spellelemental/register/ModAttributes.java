@@ -11,7 +11,7 @@ import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-@EventBusSubscriber(modid = SpellElemental.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = SpellElemental.MODID)
 public class ModAttributes {
 
     public static final DeferredRegister<Attribute> ATTRIBUTES =

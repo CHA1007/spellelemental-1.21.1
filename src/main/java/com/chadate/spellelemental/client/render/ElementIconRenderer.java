@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@EventBusSubscriber(modid = SpellElemental.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = SpellElemental.MODID)
 public class ElementIconRenderer {
 	@SubscribeEvent
 	public static void onRenderLivingPost(RenderLivingEvent.Post<LivingEntity, ?> event) {

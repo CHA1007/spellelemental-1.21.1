@@ -18,7 +18,7 @@ import net.neoforged.neoforge.client.event.RenderLivingEvent;
 import java.util.Map;
 import java.util.Random;
 
-@EventBusSubscriber(modid = SpellElemental.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = SpellElemental.MODID)
 public class ElementAuraRenderer {
     private static final Random RNG = new Random();
 

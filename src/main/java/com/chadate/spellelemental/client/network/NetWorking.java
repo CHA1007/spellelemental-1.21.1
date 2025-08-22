@@ -11,7 +11,7 @@ import net.neoforged.neoforge.network.registration.HandlerThread;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 
-@EventBusSubscriber(modid = SpellElemental.MODID,bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = SpellElemental.MODID)
 public class NetWorking {
     @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {

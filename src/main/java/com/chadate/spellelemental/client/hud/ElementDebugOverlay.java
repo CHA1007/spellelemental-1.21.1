@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Map;
 
-@EventBusSubscriber(modid = SpellElemental.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = SpellElemental.MODID)
 public class ElementDebugOverlay {
 	@SubscribeEvent
 	public static void onRenderGui(RenderGuiEvent.Post event) {
