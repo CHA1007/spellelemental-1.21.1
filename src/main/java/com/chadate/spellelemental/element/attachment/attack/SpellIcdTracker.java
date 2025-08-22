@@ -29,8 +29,7 @@ public final class SpellIcdTracker {
         }
         @Override public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof Key)) return false;
-            Key key = (Key) o;
+            if (!(o instanceof Key key)) return false;
             return attackerId == key.attackerId && targetId == key.targetId && Objects.equals(spellKey, key.spellKey);
         }
         @Override public int hashCode() { return Objects.hash(attackerId, targetId, spellKey); }
@@ -66,10 +65,4 @@ public final class SpellIcdTracker {
         return allow;
     }
 
-    /** Optional helper to reset on demand (e.g., spell swap). */
-    public static void reset(Entity attacker, Entity target, ResourceLocation spellId) {
-        int attackerId = attacker == null ? -1 : attacker.getId();
-        int targetId = target == null ? -1 : target.getId();
-        STATES.remove(new Key(attackerId, targetId, spellId));
-    }
 }
