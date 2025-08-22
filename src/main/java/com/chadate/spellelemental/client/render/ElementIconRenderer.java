@@ -2,11 +2,6 @@ package com.chadate.spellelemental.client.render;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.client.network.custom.ClientPayloadHandler;
-import com.chadate.spellelemental.client.network.custom.ElementData;
-import com.chadate.spellelemental.data.ElementContainerAttachment;
-import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -112,8 +107,7 @@ public class ElementIconRenderer {
 				ResourceLocation rl = ResourceLocation.parse(iconPath);
 				Optional<Resource> res = mc.getResourceManager().getResource(rl);
 				if (res.isPresent()) return rl;
-				String path = rl.getPath();
-				String candidate = path;
+                String candidate = rl.getPath();
 				if (candidate.startsWith("textures/")) candidate = candidate.substring("textures/".length());
 				if (candidate.endsWith(".png")) candidate = candidate.substring(0, candidate.length() - 4);
 				ResourceLocation rl2 = ResourceLocation.fromNamespaceAndPath(rl.getNamespace(), "textures/" + candidate + ".png");
