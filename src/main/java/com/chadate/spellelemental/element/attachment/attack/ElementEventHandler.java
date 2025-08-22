@@ -3,10 +3,10 @@ package com.chadate.spellelemental.element.attachment.attack;
 
 
 import com.chadate.spellelemental.SpellElemental;
+import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.client.network.custom.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
-import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
@@ -65,7 +65,17 @@ public class ElementEventHandler {
         // 获取攻击者信息用于追踪
         Entity attacker = event.getSpellDamageSource().getEntity();
         int attackerId = (attacker != null) ? attacker.getId() : -1;
-        
+
+        // 双重ICD：每N次命中或每T刻
+        int step = ServerConfig.getIcdHitStep();
+        int timeTicks = ServerConfig.getIcdTimeTicks();
+        long now = target.level().getGameTime();
+        boolean allow = SpellIcdTracker.allowAndRecord(attacker, target, spellKey, now, step, timeTicks);
+        if (!allow) {
+            SpellElemental.LOGGER.debug("[SpellElemental][ICD] Blocked apply: attacker={}, spell={}, step={}, time={}t", attackerId, spellId, step, timeTicks);
+            return;
+        }
+
         applyAttachment(target, elementId.toLowerCase(), duration, attackerId);
         
         // 调试：记录元素附着处理完成后的元素状态

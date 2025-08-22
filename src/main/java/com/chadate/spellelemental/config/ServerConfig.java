@@ -13,6 +13,10 @@ public class ServerConfig {
     // Default element attachment amount applied to any spell without an explicit override
     public static final IntValue ELEMENT_ATTACHMENT_DEFAULT;
 
+    // Element attachment ICD settings
+    public static final IntValue ELEMENT_ICD_HIT_STEP;     // every Nth hit (1, 1+N, 1+2N, ...)
+    public static final IntValue ELEMENT_ICD_TIME_TICKS;   // time window ticks (e.g., 50 = 2.5s)
+
     // Overrides in the form "modid:spell_id=amount"; multiple entries separated by ';'
     public static final ModConfigSpec.ConfigValue<String> ELEMENT_ATTACHMENT_OVERRIDES_TEXT;
 
@@ -29,6 +33,18 @@ public class ServerConfig {
         ELEMENT_ATTACHMENT_DEFAULT = BUILDER
                 .comment("Default element attachment amount for spells without explicit override")
                 .defineInRange("default", 200, 0, Integer.MAX_VALUE);
+
+        ELEMENT_ICD_HIT_STEP = BUILDER
+                .comment(
+                        "ICD hit step: allow elemental application on hits 1, 1+step, 1+2*step, ...",
+                        "Set to 3 to allow 1st, 4th, 7th hits, etc.")
+                .defineInRange("icd_hit_step", 3, 1, Integer.MAX_VALUE);
+
+        ELEMENT_ICD_TIME_TICKS = BUILDER
+                .comment(
+                        "ICD time window in ticks: allow application if last application is older than this window.",
+                        "50 ticks = 2.5 seconds at 20 tps")
+                .defineInRange("icd_time_ticks", 50, 0, Integer.MAX_VALUE);
 
         ELEMENT_ATTACHMENT_OVERRIDES_TEXT = BUILDER
                 .comment(
@@ -72,6 +88,15 @@ public class ServerConfig {
     public static void invalidateCache() {
         overridesCache = null;
         spellElementOverridesCache = null;
+    }
+
+    // ----- ICD getters -----
+    public static int getIcdHitStep() {
+        return ELEMENT_ICD_HIT_STEP.get();
+    }
+
+    public static int getIcdTimeTicks() {
+        return ELEMENT_ICD_TIME_TICKS.get();
     }
 
     private static Map<ResourceLocation, Integer> parseOverrides(String text) {
