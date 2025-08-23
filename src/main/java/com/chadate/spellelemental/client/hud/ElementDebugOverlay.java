@@ -1,19 +1,17 @@
 package com.chadate.spellelemental.client.hud;
 
-import com.chadate.spellelemental.SpellElemental;
+
 import com.chadate.spellelemental.client.network.custom.ClientPayloadHandler;
-import com.chadate.spellelemental.client.network.custom.ElementData;
+import com.chadate.spellelemental.network.ElementData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Map;
 
-@EventBusSubscriber(modid = SpellElemental.MODID)
 public class ElementDebugOverlay {
 	@SubscribeEvent
 	public static void onRenderGui(RenderGuiEvent.Post event) {

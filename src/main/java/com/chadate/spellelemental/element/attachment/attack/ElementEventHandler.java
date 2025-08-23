@@ -4,7 +4,7 @@ package com.chadate.spellelemental.element.attachment.attack;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.config.ServerConfig;
-import com.chadate.spellelemental.client.network.custom.ElementData;
+import com.chadate.spellelemental.network.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets;
@@ -92,7 +92,22 @@ public class ElementEventHandler {
         // 记录攻击者信息用于tick反应追踪
         container.markAppliedWithAttacker(elementKeyLower, gameTime, attackerId);
         ElementDecaySystem.track(entity);
-        PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), elementKeyLower, duration));
+        // 只向能看到该实体的玩家发送元素数据
+        SpellElemental.LOGGER.info("[DEBUG] Sending element attachment sync - Entity: {}, Element: {}, Duration: {}", 
+            entity.getId(), elementKeyLower, duration);
+        PacketDistributor.sendToPlayersTrackingEntity(entity, new ElementData(entity.getId(), elementKeyLower, duration));
+        
+        // 额外：向附近的玩家强制同步（防止追踪范围问题）
+        if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            for (net.minecraft.server.level.ServerPlayer player : serverLevel.players()) {
+                double distance = player.distanceTo(entity);
+                if (distance <= 64.0) {
+                    PacketDistributor.sendToPlayer(player, new ElementData(entity.getId(), elementKeyLower, duration));
+                    SpellElemental.LOGGER.info("[DEBUG] Force syncing to nearby player: {} (distance: {:.1f})", 
+                        player.getName().getString(), distance);
+                }
+            }
+        }
     }
 
     // 当玩家开始追踪（看见）某个实体时，同步该实体的元素状态快照
@@ -106,5 +121,7 @@ public class ElementEventHandler {
         int[] values = new int[keys.length];
         for (int i = 0; i < keys.length; i++) values[i] = snap.get(keys[i]);
         PacketDistributor.sendToPlayer(player, new ElementData.ElementSnapshot(living.getId(), keys, values));
+        SpellElemental.LOGGER.info("[DEBUG] Syncing elements to client - Player: {}, Target: {}, Elements: {}", 
+            player.getName().getString(), living.getId(), snap);
     }
 }

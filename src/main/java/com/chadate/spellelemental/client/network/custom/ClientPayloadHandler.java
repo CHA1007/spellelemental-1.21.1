@@ -2,6 +2,7 @@ package com.chadate.spellelemental.client.network.custom;
 
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
+import com.chadate.spellelemental.network.ElementData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -15,34 +16,50 @@ public class ClientPayloadHandler {
 		int entityId = data.entityIdMessage;
 		int elementDuration = data.durationMessage;
 
+		System.out.println("[CLIENT] Received element data - Entity: " + entityId + ", Element: " + element + ", Duration: " + elementDuration);
+
 		context.enqueueWork(() -> {
 			Entity entity = context.player().level().getEntity(entityId);
-			if (entity == null) return;
+			if (entity == null) {
+				System.out.println("[CLIENT] Entity " + entityId + " not found in client world!");
+				return;
+			}
 
 			ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
 
 			if (elementDuration == 0) {
 				container.remove(element);
 				DisplayCache.remove(entityId, element);
+				System.out.println("[CLIENT] Removed element " + element + " from entity " + entityId);
 			} else {
 				container.setValue(element, elementDuration);
 				long now = context.player().level().getGameTime();
 				DisplayCache.update(entityId, element, elementDuration, now);
+				System.out.println("[CLIENT] Applied element " + element + " to entity " + entityId + " with duration " + elementDuration);
 			}
 		});
 	}
 
 	public static void handleSnapshotOnNetwork(final ElementData.ElementSnapshot snapshot, final IPayloadContext context) {
+		System.out.println("[CLIENT] Received element snapshot - Entity: " + snapshot.entityId + ", Elements: " + snapshot.keys.length);
+		
 		context.enqueueWork(() -> {
 			Entity entity = context.player().level().getEntity(snapshot.entityId);
-			if (entity == null) return;
+			if (entity == null) {
+				System.out.println("[CLIENT] Entity " + snapshot.entityId + " not found for snapshot!");
+				return;
+			}
+			
 			ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
 			// 清空并重建
 			container.snapshot().keySet().forEach(container::remove);
 			DisplayCache.clearEntity(snapshot.entityId);
 			long now = context.player().level().getGameTime();
+			
+			System.out.println("[CLIENT] Processing snapshot for entity " + snapshot.entityId + ":");
 			for (int i = 0; i < snapshot.keys.length; i++) {
 				int v = snapshot.values[i];
+				System.out.println("[CLIENT]   - " + snapshot.keys[i] + ": " + v);
 				if (v > 0) {
 					container.setValue(snapshot.keys[i], v);
 					DisplayCache.update(snapshot.entityId, snapshot.keys[i], v, now);

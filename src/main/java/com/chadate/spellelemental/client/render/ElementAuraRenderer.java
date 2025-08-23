@@ -1,7 +1,8 @@
 package com.chadate.spellelemental.client.render;
 
-import com.chadate.spellelemental.SpellElemental;
+
 import com.chadate.spellelemental.client.network.custom.ClientPayloadHandler;
+
 import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -12,13 +13,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
 
 import java.util.Map;
 import java.util.Random;
 
-@EventBusSubscriber(modid = SpellElemental.MODID)
 public class ElementAuraRenderer {
     private static final Random RNG = new Random();
 

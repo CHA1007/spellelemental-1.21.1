@@ -1,4 +1,4 @@
-package com.chadate.spellelemental.client.network.custom;
+package com.chadate.spellelemental.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;

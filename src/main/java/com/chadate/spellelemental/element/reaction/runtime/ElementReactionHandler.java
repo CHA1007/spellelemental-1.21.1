@@ -2,7 +2,7 @@ package com.chadate.spellelemental.element.reaction.runtime;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.register.ModAttributes;
-import com.chadate.spellelemental.client.network.custom.ElementData;
+import com.chadate.spellelemental.network.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.data.ElementReactionRegistry;
