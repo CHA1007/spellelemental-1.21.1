@@ -9,11 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Tracks Internal Cooldown (ICD) for spell elemental application per attacker+spell.
- * Rule: allow application when either
- *  - hit counter allows: every Nth sequence (1, 1+N, 1+2N, ...), default N=3
- *  - time window allows: last application older than T ticks, default T=50 (2.5s)
- * After a successful application, counter resets and lastApplyTick updates.
+ * 跟踪每个攻击者+法术的法术元素应用的内部冷却时间 （ICD）。
+ * 规则：允许在任一情况下申请
+ * - 命中计数器允许：每 N 个序列 （1， 1+N， 1+2N， ...），默认 N=3
+ * - 时间窗口允许：上次应用早于 T 刻度，默认 T=50 （2.5s）
+ * 申请成功后，计数器重置和 lastApplyTick 更新。
  */
 public final class SpellIcdTracker {
     private SpellIcdTracker() {}
@@ -42,7 +42,7 @@ public final class SpellIcdTracker {
 
     private static final Map<Key, State> STATES = new ConcurrentHashMap<>();
 
-    /** Call this on every spell damage event to record a hit and check allowance. */
+    /** 在每个法术伤害事件中调用此值以记录命中并检查余量 */
     public static boolean allowAndRecord(Entity attacker, Entity target, ResourceLocation spellId, long currentTick,
                                          int step, int timeWindowTicks) {
         int attackerId = attacker == null ? -1 : attacker.getId();

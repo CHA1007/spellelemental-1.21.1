@@ -15,7 +15,7 @@ public class NetWorking {
     @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {
         final PayloadRegistrar registrar = event.registrar(SpellElemental.MODID)
-                .executesOn(HandlerThread.NETWORK); // All subsequent payloads will register on the network thread
+                .executesOn(HandlerThread.NETWORK);
         registrar.playToClient(
                 ElementData.TYPE,
                 ElementData.STREAM_CODEC,

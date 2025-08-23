@@ -327,11 +327,23 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                 JsonObject obj = el.getAsJsonObject();
                                 String src = obj.has("source") ? obj.get("source").getAsString() : null;
                                 String tgt = obj.has("target") ? obj.get("target").getAsString() : null;
-                                // 新机制：不再解析消耗量，前者消耗后手全部附着量
+                                // 解析消耗比值（可选）
+                                double ratio = 1.0;
+                                if (obj.has("ratio") && obj.get("ratio").isJsonPrimitive()) {
+                                    try {
+                                        ratio = Math.max(0.0, obj.get("ratio").getAsDouble());
+                                    } catch (Exception ex) {
+                                        ratio = 1.0;
+                                    }
+                                }
                                 if (src != null && tgt != null) {
                                     ElementReactionRegistry.indexDamageOrdered(
                                             reactionId.trim(), src, tgt
                                     );
+                                    // 设置消耗比值
+                                    if (ratio != 1.0) {
+                                        ElementReactionRegistry.setConsumeRatio(src, tgt, ratio);
+                                    }
                                     // 解析该方向下的 effects（可选）：兼容数组或分组对象({ "damage": [...] })
                                     if (obj.has("effects")) {
                                         if (obj.get("effects").isJsonArray()) {

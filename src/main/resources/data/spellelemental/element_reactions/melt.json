@@ -4,6 +4,7 @@
   "consume_elements": true,
   "ordered": [
     { "source": "fire", "target": "ice",
+      "ratio": 2.0,
       "effects": {
         "damage": [
           {
@@ -15,6 +16,7 @@
       }
     },
     { "source": "ice",  "target": "fire",
+      "ratio": 0.5,
       "effects": {
       "damage": [
         {
