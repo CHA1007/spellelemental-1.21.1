@@ -2,7 +2,6 @@ package com.chadate.spellelemental.client.render;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.client.network.custom.ClientPayloadHandler;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -10,6 +9,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
 
@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@EventBusSubscriber(modid = SpellElemental.MODID, value = Dist.CLIENT)
 public class ElementIconRenderer {
 	@SubscribeEvent
 	public static void onRenderLivingPost(RenderLivingEvent.Post<LivingEntity, ?> event) {

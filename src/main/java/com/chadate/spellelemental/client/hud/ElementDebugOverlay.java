@@ -6,12 +6,14 @@ import com.chadate.spellelemental.network.ElementData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.Entity;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Map;
 
+@EventBusSubscriber(modid = SpellElemental.MODID, value = Dist.CLIENT)
 public class ElementDebugOverlay {
 	@SubscribeEvent
 	public static void onRenderGui(RenderGuiEvent.Post event) {

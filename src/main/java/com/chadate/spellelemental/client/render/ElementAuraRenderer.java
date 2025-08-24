@@ -12,12 +12,14 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
 
 import java.util.Map;
 import java.util.Random;
 
+@EventBusSubscriber(modid = SpellElemental.MODID, value = Dist.CLIENT)
 public class ElementAuraRenderer {
     private static final Random RNG = new Random();
 
