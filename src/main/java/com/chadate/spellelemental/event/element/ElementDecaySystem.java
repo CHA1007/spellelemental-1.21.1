@@ -38,9 +38,8 @@ public final class ElementDecaySystem {
                 if (value <= 0) continue;
                 value -= 1;
                 container.setValue(key, value);
-                if (value == 0) {
-                    PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, 0));
-                }
+                // 强制将所有元素附着状态都发送给所有玩家
+                PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, value));
             }
         }
     }

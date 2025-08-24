@@ -1,10 +1,7 @@
 package com.chadate.spellelemental.event.crit;
 
 import com.chadate.spellelemental.register.ModAttributes;
-import com.chadate.spellelemental.register.ModSounds;
 import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
 public class SpellDamageCritHandler {
@@ -27,8 +24,6 @@ public class SpellDamageCritHandler {
             float critDamage = (float) calculateSpellCritDamage(event.getOriginalAmount(), attacker);
             event.setAmount(critDamage);
 
-            // 触发音效
-//            triggerCritSound(attacker);
         }
     }
 
@@ -48,19 +43,4 @@ public class SpellDamageCritHandler {
         return originalDamage * (1 + critMultiplier);
     }
 
-    /**
-     * 暴击音效
-     */
-    private static void triggerCritSound(LivingEntity attacker) {
-        SoundSource soundSource = attacker.getSoundSource();
-        // 仅让触发暴击的攻击者本人听到
-        if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
-            sp.playNotifySound(
-                    ModSounds.SPELL_CRIT.get(),
-                    soundSource,
-                    1.0f,
-                    1.0f
-            );
-        }
-    }
 }

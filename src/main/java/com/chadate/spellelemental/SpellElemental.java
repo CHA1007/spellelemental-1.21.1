@@ -71,10 +71,6 @@ public class SpellElemental {
     }
     
     private void onClientSetup(FMLClientSetupEvent event) {
-        // 委托给专门的客户端初始化类
-        SpellElementalClient.init();
-        
-        // 执行客户端设置阶段的额外初始化
-        event.enqueueWork(SpellElementalClient::setup);
+
     }
 }
