@@ -14,7 +14,6 @@ import java.util.Set;
  * 并按触发类型（damage / tick）分组。
  */
 public final class ElementReactionRegistry {
-    private static final Set<String> REACTION_IDS = new LinkedHashSet<>();
     private static final Set<String> DAMAGE_REACTIONS = new LinkedHashSet<>();
     private static final Set<String> TICK_REACTIONS = new LinkedHashSet<>();
     /**
@@ -55,7 +54,6 @@ public final class ElementReactionRegistry {
     private ElementReactionRegistry() {}
 
     public static void clear() {
-        REACTION_IDS.clear();
         DAMAGE_REACTIONS.clear();
         TICK_REACTIONS.clear();
         DAMAGE_COMBO_INDEX.clear();
@@ -67,15 +65,8 @@ public final class ElementReactionRegistry {
         DAMAGE_CONSUME_RATIO.clear();
     }
 
-    public static void add(String reactionId) {
-        if (reactionId != null && !reactionId.isBlank()) {
-            REACTION_IDS.add(reactionId);
-        }
-    }
-
     public static void add(String reactionId, String triggerType) {
         if (reactionId == null || reactionId.isBlank()) return;
-        REACTION_IDS.add(reactionId);
         String t = triggerType == null ? "damage" : triggerType.trim().toLowerCase();
         if ("tick".equals(t)) {
             TICK_REACTIONS.add(reactionId);
@@ -86,14 +77,6 @@ public final class ElementReactionRegistry {
         if (!"tick".equals(t)) {
             REACTION_CONSUME_FLAG.put(reactionId, Boolean.TRUE);
         }
-    }
-
-    public static Set<String> getAll() {
-        return Collections.unmodifiableSet(REACTION_IDS);
-    }
-
-    public static boolean contains(String reactionId) {
-        return REACTION_IDS.contains(reactionId);
     }
 
     public static Set<String> getDamageReactions() {
@@ -113,7 +96,7 @@ public final class ElementReactionRegistry {
     /** 若未配置，默认返回 true（即消耗元素） */
     public static boolean shouldConsumeElements(String reactionId) {
         Boolean v = REACTION_CONSUME_FLAG.get(reactionId);
-        return v == null ? true : v;
+        return v == null || v;
     }
 
     // -------------- consume ratio API --------------
@@ -146,13 +129,6 @@ public final class ElementReactionRegistry {
     public static List<TickRule> getTickRules(String reactionId) {
         List<TickRule> list = TICK_RULES.get(reactionId);
         return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
-    }
-
-    /** 兼容旧调用：返回第一个规则或空规则。*/
-    public static TickRule getTickRule(String reactionId) {
-        List<TickRule> list = TICK_RULES.get(reactionId);
-        if (list == null || list.isEmpty()) return new TickRule(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), 1);
-        return list.get(0);
     }
 
     private static Map<String, Integer> normalizeElemIntMap(Map<String, Integer> in) {
@@ -386,38 +362,36 @@ public final class ElementReactionRegistry {
     }
 
     /**
-     * 属性效果数据。
-     * attributeId: 属性资源ID字符串
-     * operation: 计算方式标识（如 add / multiply 等，由运行时解释）
-     * value: 数值
-     * duration: 持续时长（tick）
+         * 属性效果数据。
+         * attributeId: 属性资源ID字符串
+         * operation: 计算方式标识（如 add / multiply 等，由运行时解释）
+         * value: 数值
+         * duration: 持续时长（tick）
+         */
+        public record AttributeEffect(String attributeId, String operation, double value, int duration) {
+            public AttributeEffect(String attributeId, String operation, double value, int duration) {
+                this.attributeId = attributeId == null ? "" : attributeId.trim();
+                this.operation = operation == null ? "add" : operation.trim().toLowerCase();
+                this.value = value;
+                this.duration = Math.max(0, duration);
+            }
+        }
+
+    /**
+     * tick 类型的规则：元素需求、消耗、效果与触发间隔
+     *
+     * @param requirements 触发所需的元素及其最小值
+     * @param consume      触发后要消耗的元素量
+     * @param effects      触发后可执行的效果（与 damage 类似的结构）
+     * @param interval     触发间隔（单位：tick，最小为1；1=每tick）
      */
-    public static class AttributeEffect {
-        public final String attributeId;
-        public final String operation;
-        public final double value;
-        public final int duration;
-
-        public AttributeEffect(String attributeId, String operation, double value, int duration) {
-            this.attributeId = attributeId == null ? "" : attributeId.trim();
-            this.operation = operation == null ? "add" : operation.trim().toLowerCase();
-            this.value = value;
-            this.duration = Math.max(0, duration);
+        public record TickRule(Map<String, Integer> requirements, Map<String, Integer> consume,
+                               List<ReactionEffect> effects, int interval) {
+            public TickRule(Map<String, Integer> requirements, Map<String, Integer> consume, List<ReactionEffect> effects, int interval) {
+                this.requirements = requirements == null ? Collections.emptyMap() : Map.copyOf(requirements);
+                this.consume = consume == null ? Collections.emptyMap() : Map.copyOf(consume);
+                this.effects = effects == null ? Collections.emptyList() : List.copyOf(effects);
+                this.interval = Math.max(1, interval);
+            }
         }
-    }
-
-    /** tick 类型的规则：元素需求、消耗、效果与触发间隔 */
-    public static class TickRule {
-        public final Map<String, Integer> requirements; // 触发所需的元素及其最小值
-        public final Map<String, Integer> consume;       // 触发后要消耗的元素量
-        public final List<ReactionEffect> effects;       // 触发后可执行的效果（与 damage 类似的结构）
-        public final int interval;                       // 触发间隔（单位：tick，最小为1；1=每tick）
-
-        public TickRule(Map<String, Integer> requirements, Map<String, Integer> consume, List<ReactionEffect> effects, int interval) {
-            this.requirements = requirements == null ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(requirements));
-            this.consume = consume == null ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(consume));
-            this.effects = effects == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(effects));
-            this.interval = Math.max(1, interval);
-        }
-    }
 }

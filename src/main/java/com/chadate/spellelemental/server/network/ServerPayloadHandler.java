@@ -16,7 +16,7 @@ public final class ServerPayloadHandler {
 
 	public static void handleInspectRequest(final ElementData.ElementInspectRequest payload, final IPayloadContext context) {
 		context.enqueueWork(() -> {
-			Entity target = context.player().level().getEntity(payload.entityId);
+			Entity target = context.player().level().getEntity(payload.entityId());
 			if (!(target instanceof LivingEntity living)) return;
 			ElementContainerAttachment container = living.getData(SpellAttachments.ELEMENTS_CONTAINER);
 			Map<String, Integer> snap = container.snapshot();

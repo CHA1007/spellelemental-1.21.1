@@ -7,25 +7,16 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 public class ElementData implements CustomPacketPayload {
-    static int entityId;
     static String element;
-    static int duration;
 
     public final int entityIdMessage;
     public final String elementMessage;
     public final int durationMessage;
 
-    public static int getEntityId() {
-        return entityId;
-    }
-
     public static String getElement() {
         return element;
     }
 
-    public static int getDuration() {
-        return duration;
-    }
 
     public static final CustomPacketPayload.Type<ElementData> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_data"));
 
@@ -99,30 +90,42 @@ public class ElementData implements CustomPacketPayload {
     }
 
     // 开关调试显示
-    public static class ElementDebugToggle implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<ElementDebugToggle> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_debug_toggle"));
-        public static final StreamCodec<FriendlyByteBuf, ElementDebugToggle> STREAM_CODEC = CustomPacketPayload.codec(ElementDebugToggle::write, ElementDebugToggle::new);
+        public record ElementDebugToggle(boolean enabled) implements CustomPacketPayload {
+            public static final Type<ElementDebugToggle> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_debug_toggle"));
+            public static final StreamCodec<FriendlyByteBuf, ElementDebugToggle> STREAM_CODEC = CustomPacketPayload.codec(ElementDebugToggle::write, ElementDebugToggle::new);
 
-        public final boolean enabled;
+        private ElementDebugToggle(FriendlyByteBuf buf) {
+            this(buf.readBoolean());
+        }
 
-        public ElementDebugToggle(boolean enabled) { this.enabled = enabled; }
-        private ElementDebugToggle(FriendlyByteBuf buf) { this.enabled = buf.readBoolean(); }
-        private void write(FriendlyByteBuf buf) { buf.writeBoolean(enabled); }
+        private void write(FriendlyByteBuf buf) {
+            buf.writeBoolean(enabled);
+        }
+
         @Override
-        public @NotNull Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
+            public @NotNull Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+        }
 
     // 客户端 -> 服务端：检查某实体的元素快照
-    public static class ElementInspectRequest implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<ElementInspectRequest> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_inspect_req"));
-        public static final StreamCodec<FriendlyByteBuf, ElementInspectRequest> STREAM_CODEC = CustomPacketPayload.codec(ElementInspectRequest::write, ElementInspectRequest::new);
-        public final int entityId;
-        public ElementInspectRequest(int entityId) { this.entityId = entityId; }
-        private ElementInspectRequest(FriendlyByteBuf buf) { this.entityId = buf.readInt(); }
-        private void write(FriendlyByteBuf buf) { buf.writeInt(entityId); }
+        public record ElementInspectRequest(int entityId) implements CustomPacketPayload {
+            public static final Type<ElementInspectRequest> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("spellelemental", "element_inspect_req"));
+            public static final StreamCodec<FriendlyByteBuf, ElementInspectRequest> STREAM_CODEC = CustomPacketPayload.codec(ElementInspectRequest::write, ElementInspectRequest::new);
+
+        private ElementInspectRequest(FriendlyByteBuf buf) {
+            this(buf.readInt());
+        }
+
+        private void write(FriendlyByteBuf buf) {
+            buf.writeInt(entityId);
+        }
+
         @Override
-        public @NotNull Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
+            public @NotNull Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+        }
 
     // 服务端 -> 客户端：检查回复
     public static class ElementInspectResponse implements CustomPacketPayload {

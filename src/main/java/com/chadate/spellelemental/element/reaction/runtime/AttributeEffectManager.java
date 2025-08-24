@@ -1,9 +1,10 @@
 package com.chadate.spellelemental.element.reaction.runtime;
 
-import com.chadate.spellelemental.SpellElemental;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 
 import net.neoforged.bus.api.SubscribeEvent;
@@ -22,25 +23,14 @@ public class AttributeEffectManager {
      * Key: 实体ID, Value: 该实体的属性效果列表
      */
     private static final Map<Integer, List<ActiveAttributeEffect>> ACTIVE_EFFECTS = new ConcurrentHashMap<>();
-    
+
     /**
      * 活跃属性效果数据结构
+     *
+     * @param expireTime 过期时间（游戏时间）
      */
-    public static class ActiveAttributeEffect {
-        public final int entityId;
-        public final net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attributeHolder;
-        public final ResourceLocation modifierId;
-        public final long expireTime; // 过期时间（游戏时间）
-        
-        public ActiveAttributeEffect(int entityId, 
-                                   net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attributeHolder,
-                                   ResourceLocation modifierId, 
-                                   long expireTime) {
-            this.entityId = entityId;
-            this.attributeHolder = attributeHolder;
-            this.modifierId = modifierId;
-            this.expireTime = expireTime;
-        }
+        public record ActiveAttributeEffect(int entityId, Holder<Attribute> attributeHolder, ResourceLocation modifierId,
+                                            long expireTime) {
     }
     
     /**
@@ -66,8 +56,6 @@ public class AttributeEffectManager {
                 // 找到相同修饰符，更新过期时间
                 effects.set(i, new ActiveAttributeEffect(entityId, attributeHolder, modifierId, expireTime));
                 found = true;
-                SpellElemental.LOGGER.debug("[AttributeEffectManager] Refreshed timed effect for entity {}, new expire time: {}", 
-                    entityId, expireTime);
                 break;
             }
         }
@@ -76,8 +64,6 @@ public class AttributeEffectManager {
         if (!found) {
             ActiveAttributeEffect effect = new ActiveAttributeEffect(entityId, attributeHolder, modifierId, expireTime);
             effects.add(effect);
-            SpellElemental.LOGGER.debug("[AttributeEffectManager] Registered new timed effect for entity {}, expires at {}", 
-                entityId, expireTime);
         }
     }
     
@@ -115,9 +101,7 @@ public class AttributeEffectManager {
                     // 效果过期，移除属性修饰符
                     removeAttributeModifier(livingEntity, effect.attributeHolder, effect.modifierId);
                     effectIterator.remove();
-                    
-                    SpellElemental.LOGGER.debug("[AttributeEffectManager] Removed expired effect for entity {}, modifier {}", 
-                        entityId, effect.modifierId);
+
                 }
             }
             
@@ -137,30 +121,12 @@ public class AttributeEffectManager {
         try {
             AttributeInstance instance = entity.getAttribute(attributeHolder);
             if (instance != null) {
-                double valueBefore = instance.getValue();
-                instance.removeModifier(modifierId);
-                double valueAfter = instance.getValue();
 
-                SpellElemental.LOGGER.info("[AttributeEffectManager] Removed modifier {} from {}, value: {} -> {}",
-                    modifierId, entity.getName().getString(), valueBefore, valueAfter);
+                instance.removeModifier(modifierId);
+
             }
-        } catch (Exception e) {
-            SpellElemental.LOGGER.warn("[AttributeEffectManager] Failed to remove modifier {} from {}",
-                modifierId, entity.getName().getString(), e);
+        } catch (Exception ignored) {
         }
     }
-    
-    /**
-     * 手动移除实体的所有属性效果（用于实体死亡等情况）
-     */
-    public static void removeAllEffects(int entityId) {
-        List<ActiveAttributeEffect> effects = ACTIVE_EFFECTS.remove(entityId);
-    }
-    
-    /**
-     * 获取活跃效果数量（用于调试）
-     */
-    public static int getActiveEffectCount() {
-        return ACTIVE_EFFECTS.values().stream().mapToInt(List::size).sum();
-    }
+
 }
