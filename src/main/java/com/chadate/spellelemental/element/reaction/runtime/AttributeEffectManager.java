@@ -140,12 +140,12 @@ public class AttributeEffectManager {
                 double valueBefore = instance.getValue();
                 instance.removeModifier(modifierId);
                 double valueAfter = instance.getValue();
-                
-                SpellElemental.LOGGER.info("[AttributeEffectManager] Removed modifier {} from {}, value: {} -> {}", 
+
+                SpellElemental.LOGGER.info("[AttributeEffectManager] Removed modifier {} from {}, value: {} -> {}",
                     modifierId, entity.getName().getString(), valueBefore, valueAfter);
             }
         } catch (Exception e) {
-            SpellElemental.LOGGER.warn("[AttributeEffectManager] Failed to remove modifier {} from {}", 
+            SpellElemental.LOGGER.warn("[AttributeEffectManager] Failed to remove modifier {} from {}",
                 modifierId, entity.getName().getString(), e);
         }
     }
@@ -155,9 +155,6 @@ public class AttributeEffectManager {
      */
     public static void removeAllEffects(int entityId) {
         List<ActiveAttributeEffect> effects = ACTIVE_EFFECTS.remove(entityId);
-        if (effects != null) {
-            SpellElemental.LOGGER.debug("[AttributeEffectManager] Removed all effects for entity {}", entityId);
-        }
     }
     
     /**

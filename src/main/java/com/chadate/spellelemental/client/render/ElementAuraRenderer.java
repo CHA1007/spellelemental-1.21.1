@@ -1,6 +1,7 @@
 package com.chadate.spellelemental.client.render;
 
 
+import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.client.network.custom.ClientPayloadHandler;
 
 import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets;
@@ -14,6 +15,7 @@ import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
 
 import java.util.Map;
