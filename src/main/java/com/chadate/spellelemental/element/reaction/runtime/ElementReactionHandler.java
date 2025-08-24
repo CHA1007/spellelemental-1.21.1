@@ -2,7 +2,7 @@ package com.chadate.spellelemental.element.reaction.runtime;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.register.ModAttributes;
-import com.chadate.spellelemental.client.network.custom.ElementData;
+import com.chadate.spellelemental.network.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.element.reaction.data.ElementReactionRegistry;
@@ -142,7 +142,7 @@ public class ElementReactionHandler {
         int beforeAttackerSource = (attacker instanceof LivingEntity la) ? getElementValue(la, matchedSource) : -1;
         int beforeDirectSource = (direct instanceof LivingEntity ld) ? getElementValue(ld, matchedSource) : -1;
 
-        // 元素反应消耗逻辑：后手元素完全清除，先手元素消耗后手元素的量（可关闭）
+        // 元素反应消耗逻辑：后手元素完全清除，先手元素按比值消耗（可关闭）
         // 注意：在 intraTarget 模式下，matchedSource 是后手元素（新附着的），matchedTarget 是先手元素（原有的）
         int sourceElementAmount = getElementValue(victim, matchedSource);
         if (shouldConsume) {
@@ -150,9 +150,12 @@ public class ElementReactionHandler {
             if (sourceElementAmount > 0) {
                 consumeElementOnEntity(victim, matchedSource, sourceElementAmount);
             }
-            // 2. 从先手元素（matchedTarget）中消耗后手元素的量
+            // 2. 从先手元素（matchedTarget）中按比值消耗
             if (sourceElementAmount > 0) {
-                consumeElementOnEntity(victim, matchedTarget, sourceElementAmount);
+                // 获取消耗比值（source:target）
+                double ratio = ElementReactionRegistry.getConsumeRatio(matchedSource, matchedTarget);
+                int targetConsumeAmount = (int) Math.ceil(sourceElementAmount * ratio);
+                consumeElementOnEntity(victim, matchedTarget, targetConsumeAmount);
             }
         }
 
@@ -162,14 +165,16 @@ public class ElementReactionHandler {
         int afterAttackerSource = (attacker instanceof LivingEntity la2) ? getElementValue(la2, matchedSource) : -1;
         int afterDirectSource = (direct instanceof LivingEntity ld2) ? getElementValue(ld2, matchedSource) : -1;
 
-        // 详细调试输出（含消耗前/后剩余值）
+        // 详细调试输出（含消耗前/后剩余值和消耗比值）
+        double consumeRatio = ElementReactionRegistry.getConsumeRatio(matchedSource, matchedTarget);
         SpellElemental.LOGGER.info(
-                "ElementReaction triggered: id={}, mode={}, src={}, tgt={}, targetConsumed={}, victim={}, attacker={}, direct={}, inferredSource={}, before(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{}), after(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{})",
+                "ElementReaction triggered: id={}, mode={}, src={}, tgt={}, targetConsumed={}, ratio={}:1, victim={}, attacker={}, direct={}, inferredSource={}, before(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{}), after(victim:src->{};tgt->{}; attacker:src->{}; direct:src->{})",
                 reactionId,
                 (intraTargetMode ? "intraTarget" : "normal"),
                 matchedSource,
                 matchedTarget,
                 targetElementAmount,
+                consumeRatio,
                 victim.getId(),
                 (attacker != null ? attacker.getId() : -1),
                 (direct != null ? direct.getId() : -1),

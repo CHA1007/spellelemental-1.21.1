@@ -21,6 +21,8 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+
 import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,9 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(ElementDecaySystem::elementDecay);
         NeoForge.EVENT_BUS.addListener(AttributeEffectManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(DebugCommand::onRegisterCommands);
+        
+        // 注册客户端设置事件监听器
+        modEventBus.addListener(this::onClientSetup);
 
         modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, String.format("%s-client.toml", SpellElemental.MODID));
         modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC, String.format("%s-server.toml", SpellElemental.MODID));
@@ -63,5 +68,13 @@ public class SpellElemental {
                 ServerConfig.invalidateCache();
             }
         });
+    }
+    
+    private void onClientSetup(FMLClientSetupEvent event) {
+        // 委托给专门的客户端初始化类
+        SpellElementalClient.init();
+        
+        // 执行客户端设置阶段的额外初始化
+        event.enqueueWork(SpellElementalClient::setup);
     }
 }

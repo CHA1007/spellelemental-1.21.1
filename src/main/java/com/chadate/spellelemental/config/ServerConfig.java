@@ -10,17 +10,17 @@ public class ServerConfig {
 
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
-    // Default element attachment amount applied to any spell without an explicit override
+    // 应用于任何法术的默认元素附加量，但没有显式覆盖
     public static final IntValue ELEMENT_ATTACHMENT_DEFAULT;
 
-    // Element attachment ICD settings
+    // 元件附件 ICD 设置
     public static final IntValue ELEMENT_ICD_HIT_STEP;     // every Nth hit (1, 1+N, 1+2N, ...)
     public static final IntValue ELEMENT_ICD_TIME_TICKS;   // time window ticks (e.g., 50 = 2.5s)
 
-    // Overrides in the form "modid:spell_id=amount"; multiple entries separated by ';'
+    // 以“modid：spell_id=amount”的形式覆盖;多个条目，以 ';' 分隔
     public static final ModConfigSpec.ConfigValue<String> ELEMENT_ATTACHMENT_OVERRIDES_TEXT;
 
-    // Per-spell element attachment overrides in the form "modid:spell_id=element_id"; multiple entries separated by ';'
+    // 每个拼写元素附件以“modid：spell_id=element_id”的形式覆盖;多个条目，以 ';' 分隔
     public static final ModConfigSpec.ConfigValue<String> SPELL_ELEMENT_OVERRIDES_TEXT;
 
     public static final ModConfigSpec SPEC;

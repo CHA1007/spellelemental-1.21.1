@@ -1,6 +1,6 @@
 package com.chadate.spellelemental.server.network;
 
-import com.chadate.spellelemental.client.network.custom.ElementData;
+import com.chadate.spellelemental.network.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
 import net.minecraft.server.level.ServerPlayer;

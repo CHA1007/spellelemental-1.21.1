@@ -11,7 +11,6 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
 
 import java.util.ArrayList;
@@ -26,7 +25,14 @@ public class ElementIconRenderer {
 		LivingEntity entity = event.getEntity();
 		var container = entity.getData(com.chadate.spellelemental.data.SpellAttachments.ELEMENTS_CONTAINER);
 		Map<String, Integer> snapshot = container.snapshot();
-		if (snapshot.isEmpty()) return;
+		
+		// 调试：记录渲染尝试
+		SpellElemental.LOGGER.debug("[ElementIconRenderer] Rendering entity {}, elements: {}", entity.getId(), snapshot);
+		
+		if (snapshot.isEmpty()) {
+			SpellElemental.LOGGER.debug("[ElementIconRenderer] No elements to render for entity {}", entity.getId());
+			return;
+		}
 
 		ElementIconRenderConfig cfg = ElementIconRenderConfig.get();
 		List<String> elementKeys = new ArrayList<>(snapshot.keySet());
@@ -48,13 +54,24 @@ public class ElementIconRenderer {
 		for (int i = 0; i < count; i++) {
 			String elementKey = elementKeys.get(i);
 			String iconPath = com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachmentAssets.getIcon(elementKey);
-			if (iconPath == null) continue;
+			
+			// 调试：记录图标路径获取
+			SpellElemental.LOGGER.debug("[ElementIconRenderer] Element '{}' icon path: {}", elementKey, iconPath);
+			
+			if (iconPath == null) {
+				SpellElemental.LOGGER.warn("[ElementIconRenderer] No icon path found for element: {}", elementKey);
+				continue;
+			}
 
 			poseStack.pushPose();
 			poseStack.translate(startX + i * cfg.getHorizontalSpacing(), 0.0D, 0.0D);
 			poseStack.scale(cfg.getQuadScale(), cfg.getQuadScale(), cfg.getQuadScale());
 
 			ResourceLocation rl = resolveTexture(iconPath);
+			
+			// 调试：记录纹理解析结果
+			SpellElemental.LOGGER.debug("[ElementIconRenderer] Resolved texture for '{}': {}", elementKey, rl);
+			
 			if (rl != null) {
 				var matrix = poseStack.last().pose();
 				var vc = buffer.getBuffer(RenderType.entityTranslucent(rl));
@@ -62,8 +79,19 @@ public class ElementIconRenderer {
 
 				int remain = ClientPayloadHandler.DisplayCache.predictRemaining(entity.getId(), elementKey);
 				float a = computeAlpha(remain, cfg);
-				if (a <= 0f) { poseStack.popPose(); continue; }
+				
+				// 调试：记录透明度计算
+				SpellElemental.LOGGER.debug("[ElementIconRenderer] Element '{}' remain: {}, alpha: {}", elementKey, remain, a);
+				
+				if (a <= 0f) {
+					SpellElemental.LOGGER.debug("[ElementIconRenderer] Skipping element '{}' due to zero alpha", elementKey);
+					poseStack.popPose();
+					continue;
+				}
 
+				// 调试：确认渲染执行
+				SpellElemental.LOGGER.info("[ElementIconRenderer] Actually rendering element '{}' with texture {}, alpha {}", elementKey, rl, a);
+				
 				float[][] vertices = {
 						{-1, 1, 0, 0},
 						{1, 1, 1, 0},
@@ -108,8 +136,7 @@ public class ElementIconRenderer {
 				ResourceLocation rl = ResourceLocation.parse(iconPath);
 				Optional<Resource> res = mc.getResourceManager().getResource(rl);
 				if (res.isPresent()) return rl;
-				String path = rl.getPath();
-				String candidate = path;
+                String candidate = rl.getPath();
 				if (candidate.startsWith("textures/")) candidate = candidate.substring("textures/".length());
 				if (candidate.endsWith(".png")) candidate = candidate.substring(0, candidate.length() - 4);
 				ResourceLocation rl2 = ResourceLocation.fromNamespaceAndPath(rl.getNamespace(), "textures/" + candidate + ".png");

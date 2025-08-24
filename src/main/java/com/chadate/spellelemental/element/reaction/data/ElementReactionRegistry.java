@@ -48,6 +48,10 @@ public final class ElementReactionRegistry {
     /** reaction_id -> 是否消耗元素（默认 true） */
     private static final Map<String, Boolean> REACTION_CONSUME_FLAG = new HashMap<>();
 
+    // -------------- 元素消耗比值（damage触发） --------------
+    /** key = "source->target"，value = 消耗比值（source:target，默认1:1） */
+    private static final Map<String, Double> DAMAGE_CONSUME_RATIO = new HashMap<>();
+
     private ElementReactionRegistry() {}
 
     public static void clear() {
@@ -60,6 +64,7 @@ public final class ElementReactionRegistry {
         ATTRIBUTE_EFFECTS.clear();
         TICK_RULES.clear();
         REACTION_CONSUME_FLAG.clear();
+        DAMAGE_CONSUME_RATIO.clear();
     }
 
     public static void add(String reactionId) {
@@ -109,6 +114,22 @@ public final class ElementReactionRegistry {
     public static boolean shouldConsumeElements(String reactionId) {
         Boolean v = REACTION_CONSUME_FLAG.get(reactionId);
         return v == null ? true : v;
+    }
+
+    // -------------- consume ratio API --------------
+    /** 设置元素消耗比值 */
+    public static void setConsumeRatio(String source, String target, double ratio) {
+        if (source == null || source.isBlank() || target == null || target.isBlank()) return;
+        String key = makeOrderedKey(safeElem(source), safeElem(target));
+        DAMAGE_CONSUME_RATIO.put(key, Math.max(0.0, ratio));
+    }
+
+    /** 获取元素消耗比值，若未配置则返回1.0（即1:1） */
+    public static double getConsumeRatio(String source, String target) {
+        if (source == null || source.isBlank() || target == null || target.isBlank()) return 1.0;
+        String key = makeOrderedKey(safeElem(source), safeElem(target));
+        Double ratio = DAMAGE_CONSUME_RATIO.get(key);
+        return ratio == null ? 1.0 : ratio;
     }
 
     /** 为 tick 反应追加一个规则（支持多个变体）。*/
