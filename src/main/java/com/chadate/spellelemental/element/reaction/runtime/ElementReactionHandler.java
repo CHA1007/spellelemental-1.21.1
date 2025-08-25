@@ -18,6 +18,8 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
@@ -556,6 +558,7 @@ public class ElementReactionHandler {
                             case "aoe" -> applyAoeEffectFromTick(entity, eff, totalConsumed);
                             case "extra" -> applyExtraDamageFromTick(entity, eff, totalConsumed);
                             case "attachment" -> applyAttachmentFromTick(entity, eff);
+                            case "potion" -> applyPotionEffectFromTick(entity, eff);
                         }
                         // 其他类型留作扩展
                     }
@@ -733,6 +736,44 @@ public class ElementReactionHandler {
         try {
             PacketDistributor.sendToAllPlayers(new ElementData(entity.getId(), key, amount));
         } catch (Throwable ignored) {}
+    }
+
+    /**
+     * 将药水效果应用到实体（tick 反应上下文）。
+     * 来自 ReactionEffect 的字段：potionId/potionDuration/potionLevel/potionChance。
+     */
+    private static void applyPotionEffectFromTick(LivingEntity entity, ElementReactionRegistry.ReactionEffect eff) {
+        if (entity == null || entity.level().isClientSide()) return;
+        if (eff.potionId == null || eff.potionId.isEmpty()) return;
+
+        // 概率检查
+        float chance = Math.max(0f, Math.min(1f, eff.potionChance));
+        try {
+            if (entity.getRandom().nextFloat() > chance) return;
+        } catch (Throwable ignored) {
+            return;
+        }
+
+        // 解析药水效果ID
+        try {
+            ResourceLocation potionEffectId = ResourceLocation.parse(eff.potionId);
+            var potionEffect = BuiltInRegistries.MOB_EFFECT.get(potionEffectId);
+            if (potionEffect == null) {
+                SpellElemental.LOGGER.warn("未找到药水效果: {}", eff.potionId);
+                return;
+            }
+
+            // 创建药水效果实例
+            int duration = Math.max(1, eff.potionDuration); // 至少1tick
+            int amplifier = Math.max(0, eff.potionLevel);    // 0-based等级
+            MobEffectInstance effectInstance = new MobEffectInstance(Holder.direct(potionEffect), duration, amplifier, false, true, true);
+            
+            // 应用药水效果
+            entity.addEffect(effectInstance);
+            
+        } catch (Exception e) {
+            SpellElemental.LOGGER.error("应用药水效果时出错: {}", eff.potionId, e);
+        }
     }
 
     private static float evaluateFormula(String formula, float astral) {

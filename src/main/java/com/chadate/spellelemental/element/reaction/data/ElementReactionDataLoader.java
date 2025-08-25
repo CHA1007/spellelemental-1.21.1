@@ -161,6 +161,21 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                             tickEffects.add(new ElementReactionRegistry.ReactionEffect("attachment", elemId, amount, chance, duration));
                                         }
                                     }
+                                    // 新增：分组写法 effects.potion
+                                    if (grouped.has("potion") && grouped.get("potion").isJsonArray()) {
+                                        JsonArray potionArr = grouped.getAsJsonArray("potion");
+                                        for (JsonElement potionEl : potionArr) {
+                                            if (!potionEl.isJsonObject()) continue;
+                                            JsonObject potion = potionEl.getAsJsonObject();
+                                            String potionId = potion.has("potion_id") && potion.get("potion_id").isJsonPrimitive() ? potion.get("potion_id").getAsString() : null;
+                                            int potionDuration = potion.has("duration") && potion.get("duration").isJsonPrimitive() ? potion.get("duration").getAsInt() : 200;
+                                            int potionLevel = potion.has("level") && potion.get("level").isJsonPrimitive() ? potion.get("level").getAsInt() - 1 : 0; // 转换为0-based
+                                            float potionChance = potion.has("chance") && potion.get("chance").isJsonPrimitive() ? potion.get("chance").getAsFloat() : 1.0f;
+                                            if (potionId != null) {
+                                                tickEffects.add(new ElementReactionRegistry.ReactionEffect("potion", potionId, potionDuration, potionLevel, potionChance));
+                                            }
+                                        }
+                                    }
                                 }
                             } else if (root.has("effects")) {
                                 // 兼容：变体没写 effects 则回退根级 effects
@@ -178,6 +193,14 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                             float chance = eff.has("chance") && eff.get("chance").isJsonPrimitive() ? eff.get("chance").getAsFloat() : 1.0f;
                                             int duration = eff.has("duration") && eff.get("duration").isJsonPrimitive() ? eff.get("duration").getAsInt() : 0;
                                             tickEffects.add(new ElementReactionRegistry.ReactionEffect(type, elemId, amount, chance, duration));
+                                        } else if ("potion".equalsIgnoreCase(type)) {
+                                            String potionId = eff.has("potion_id") && eff.get("potion_id").isJsonPrimitive() ? eff.get("potion_id").getAsString() : null;
+                                            int potionDuration = eff.has("duration") && eff.get("duration").isJsonPrimitive() ? eff.get("duration").getAsInt() : 200;
+                                            int potionLevel = eff.has("level") && eff.get("level").isJsonPrimitive() ? eff.get("level").getAsInt() - 1 : 0; // 转换为0-based
+                                            float potionChance = eff.has("chance") && eff.get("chance").isJsonPrimitive() ? eff.get("chance").getAsFloat() : 1.0f;
+                                            if (potionId != null) {
+                                                tickEffects.add(new ElementReactionRegistry.ReactionEffect("potion", potionId, potionDuration, potionLevel, potionChance));
+                                            }
                                         } else {
                                             float multiplier = eff.has("multiplier") && eff.get("multiplier").isJsonPrimitive() ? eff.get("multiplier").getAsFloat() : 1.0f;
                                             String formula = eff.has("formula") && eff.get("formula").isJsonPrimitive() ? eff.get("formula").getAsString() : "";

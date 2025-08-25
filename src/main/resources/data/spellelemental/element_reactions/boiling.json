@@ -1,0 +1,37 @@
+{
+  "reaction_id": "boiling",
+  "trigger_type": "tick",
+  "consume_elements": false,
+  "variants": [
+    {
+      "interval": 5,
+      "requirements": { "fire": 1, "blood": 1 },
+      "consume": { "fire": 0, "blood": 0 },
+      "effects": {
+        "damage": [
+          {
+            "type": "extra",
+            "multiplier": 1.0,
+            "formula": "CalculateOverloadDamage",
+            "damage_type": "irons_spellbooks:blood_magic"
+          }
+        ],
+        "attachment": [
+          {
+            "element_id": "blood",
+            "amount": 200,
+            "chance": 0.75
+          }
+        ],
+        "potion": [
+          {
+            "potion_id": "minecraft:weakness",
+            "duration": 100,
+            "level": 1,
+            "chance": 1.0
+          }
+        ]
+      }
+    }
+  ]
+}

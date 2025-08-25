@@ -312,6 +312,14 @@ public final class ElementReactionRegistry {
         public final float elementChance;    // 触发概率 [0,1]
         public final int elementDuration;    // 可选：持续时间（tick），0 表示未指定
         public final String elementOp;       // 操作类型："attachment" 或 "consume"
+        
+        // ---- 药水效果 扩展字段（可选）----
+        // 支持 effects.potion 这类药水效果操作
+        // 当 type 为 "potion" 时才有意义
+        public final String potionId;        // 药水效果ID（如 minecraft:weakness）
+        public final int potionDuration;     // 药水效果持续时间（tick）
+        public final int potionLevel;        // 药水效果等级（0-based，0表示I级）
+        public final float potionChance;     // 药水效果触发概率 [0,1]
 
         public ReactionEffect(String type, float multiplier, String formula) {
             this.type = type;
@@ -327,6 +335,11 @@ public final class ElementReactionRegistry {
             this.elementChance = 0f;
             this.elementDuration = 0;
             this.elementOp = null;
+            // 药水效果默认值
+            this.potionId = null;
+            this.potionDuration = 0;
+            this.potionLevel = 0;
+            this.potionChance = 0f;
         }
 
         public ReactionEffect(String type, float multiplier, String formula, float radius, String damageType) {
@@ -343,6 +356,11 @@ public final class ElementReactionRegistry {
             this.elementChance = 0f;
             this.elementDuration = 0;
             this.elementOp = null;
+            // 药水效果默认值
+            this.potionId = null;
+            this.potionDuration = 0;
+            this.potionLevel = 0;
+            this.potionChance = 0f;
         }
 
         public ReactionEffect(String type, float multiplier, String formula, float radius, String damageType,
@@ -360,6 +378,11 @@ public final class ElementReactionRegistry {
             this.elementChance = 0f;
             this.elementDuration = 0;
             this.elementOp = null;
+            // 药水效果默认值
+            this.potionId = null;
+            this.potionDuration = 0;
+            this.potionLevel = 0;
+            this.potionChance = 0f;
         }
 
         /**
@@ -385,6 +408,41 @@ public final class ElementReactionRegistry {
             this.elementChance = elementChance;
             this.elementDuration = elementDuration;
             this.elementOp = this.type; // 与 type 一致（attachment / consume）
+            // 药水效果默认值
+            this.potionId = null;
+            this.potionDuration = 0;
+            this.potionLevel = 0;
+            this.potionChance = 0f;
+        }
+
+        /**
+         * 药水效果构造器（数据驱动）
+         * 当 type 为 "potion" 时，使用该构造函数。
+         * @param type           效果类型（potion）
+         * @param potionId       药水效果ID（如 minecraft:weakness）
+         * @param potionDuration 药水效果持续时间（tick）
+         * @param potionLevel    药水效果等级（0-based，0表示I级）
+         * @param potionChance   触发概率 [0,1]
+         */
+        public ReactionEffect(String type, String potionId, int potionDuration, int potionLevel, float potionChance) {
+            this.type = type == null ? "" : type.trim().toLowerCase();
+            this.multiplier = 0f;
+            this.formula = "";
+            this.radius = 0f;
+            this.damageType = "";
+            this.damageAttacker = false;
+            this.damageVictim = true;
+            // 元素操作默认值
+            this.elementId = null;
+            this.elementAmount = 0;
+            this.elementChance = 0f;
+            this.elementDuration = 0;
+            this.elementOp = null;
+            // 药水效果字段
+            this.potionId = potionId == null ? null : potionId.trim();
+            this.potionDuration = Math.max(0, potionDuration);
+            this.potionLevel = Math.max(0, potionLevel);
+            this.potionChance = Math.max(0f, Math.min(1f, potionChance));
         }
     }
 
