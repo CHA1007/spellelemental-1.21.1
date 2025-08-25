@@ -50,9 +50,6 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(ElementDecaySystem::elementDecay);
         NeoForge.EVENT_BUS.addListener(AttributeEffectManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(DebugCommand::onRegisterCommands);
-        
-        // 注册客户端设置事件监听器
-        modEventBus.addListener(this::onClientSetup);
 
         modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, String.format("%s-client.toml", SpellElemental.MODID));
         modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC, String.format("%s-server.toml", SpellElemental.MODID));
@@ -69,8 +66,5 @@ public class SpellElemental {
             }
         });
     }
-    
-    private void onClientSetup(FMLClientSetupEvent event) {
 
-    }
 }

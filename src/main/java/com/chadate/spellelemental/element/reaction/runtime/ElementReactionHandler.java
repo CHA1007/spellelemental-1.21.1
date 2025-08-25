@@ -1,5 +1,6 @@
 package com.chadate.spellelemental.element.reaction.runtime;
 
+import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.register.ModAttributes;
 import com.chadate.spellelemental.network.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
@@ -287,13 +288,14 @@ public class ElementReactionHandler {
             event.setAmount(damage);
         }
         
-        // 应用属性效果
-        applyAttributeEffects(reactionId, victim);
+        // 应用属性效果（优先方向化，无则回退全局）
+    applyAttributeEffects(reactionId, matchedSource, matchedTarget, victim);
     }
 
     /**
      * 将元素附着到受害者实体上，遵循现有的元素附着系统：
      * - setValue(elementId, amount)
+{{ ... }}
      * - markAppliedWithAttacker(elementId, gameTime, attackerId)
      * - ElementDecaySystem.track(entity)
      * - 网络同步 ElementData
@@ -320,20 +322,36 @@ public class ElementReactionHandler {
     }
 
     /**
-     * 应用元素反应的属性效果到目标实体
+     * 应用元素反应的属性效果到目标实体（支持方向化）
      */
-    private static void applyAttributeEffects(String reactionId, LivingEntity target) {
+    private static void applyAttributeEffects(String reactionId, String matchedSource, String matchedTarget, LivingEntity target) {
         if (reactionId == null || target == null || target.level().isClientSide()) return;
         
-        List<ElementReactionRegistry.AttributeEffect> attributeEffects = ElementReactionRegistry.getAttributeEffects(reactionId);
+        // 优先获取方向化属性效果
+        List<ElementReactionRegistry.AttributeEffect> attributeEffects = ElementReactionRegistry.getDirectionalAttributeEffects(matchedSource, matchedTarget);
+        boolean usingDirectional = !attributeEffects.isEmpty();
+        
+        if (attributeEffects.isEmpty()) {
+            // 回退到全局属性效果
+            attributeEffects = ElementReactionRegistry.getAttributeEffects(reactionId);
+        }
 
-        if (attributeEffects.isEmpty()) return;
+        if (attributeEffects.isEmpty()) {
+            return;
+        }
         
         for (ElementReactionRegistry.AttributeEffect effect : attributeEffects) {
-            if (effect == null || effect.attributeId().isEmpty()) continue;
+            if (effect == null || effect.attributeId().isEmpty()) {
+                continue;
+            }
 
             // 解析属性ID为ResourceLocation
-            net.minecraft.resources.ResourceLocation attrLocation = net.minecraft.resources.ResourceLocation.parse(effect.attributeId());
+            net.minecraft.resources.ResourceLocation attrLocation;
+            try {
+                attrLocation = net.minecraft.resources.ResourceLocation.parse(effect.attributeId());
+            } catch (Exception e) {
+                continue;
+            }
 
             // 从注册表获取属性
             net.minecraft.core.Registry<net.minecraft.world.entity.ai.attributes.Attribute> attributeRegistry =
@@ -352,19 +370,20 @@ public class ElementReactionHandler {
 
                 // 生成唯一的修饰符ID
                 net.minecraft.resources.ResourceLocation modifierId = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
-                    "spellelemental",
-                    "reaction_" + reactionId + "_" + effect.attributeId().replace(":", "_")
+                        "spellelemental",
+                        "reaction_" + reactionId + "_" + effect.attributeId().replace(":", "_")
                 );
 
                 net.minecraft.world.entity.ai.attributes.AttributeModifier modifier = new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                    modifierId,
+                        modifierId,
                         effect.value(),
-                    operation
+                        operation
                 );
 
                 // 应用属性修饰符
                 net.minecraft.world.entity.ai.attributes.AttributeInstance instance = target.getAttribute(attributeHolder);
                 if (instance != null) {
+                    double beforeValue = instance.getValue();
 
                     // 移除旧的同名修饰符（如果存在）
                     instance.removeModifier(modifierId);

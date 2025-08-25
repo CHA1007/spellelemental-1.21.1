@@ -407,7 +407,8 @@ public class ElementReactionDataLoader extends SimpleJsonResourceReloadListener 
                                                     String op = aobj.has("type") && aobj.get("type").isJsonPrimitive() ? aobj.get("type").getAsString() : "add";
                                                     double val = aobj.has("value") && aobj.get("value").isJsonPrimitive() ? aobj.get("value").getAsDouble() : 0.0;
                                                     int dur = aobj.has("duration") && aobj.get("duration").isJsonPrimitive() ? Math.max(0, aobj.get("duration").getAsInt()) : 0;
-                                                    ElementReactionRegistry.addAttributeEffect(reactionId.trim(),
+                                                    // 使用方向化属性效果注册，而不是全局注册
+                                                    ElementReactionRegistry.addDirectionalAttributeEffect(src, tgt,
                                                             new ElementReactionRegistry.AttributeEffect(attrId, op, val, dur));
                                                 }
                                             }

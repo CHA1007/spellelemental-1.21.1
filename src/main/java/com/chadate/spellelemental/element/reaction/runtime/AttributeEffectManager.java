@@ -1,7 +1,9 @@
 package com.chadate.spellelemental.element.reaction.runtime;
 
+import com.chadate.spellelemental.SpellElemental;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -40,12 +42,18 @@ public class AttributeEffectManager {
                                          net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attributeHolder,
                                          ResourceLocation modifierId,
                                          int durationTicks) {
-        if (entity == null || entity.level().isClientSide() || durationTicks <= 0) return;
+        if (entity == null || entity.level().isClientSide() || durationTicks <= 0) {
+            SpellElemental.LOGGER.warn("跳过定时效果注册：entity={}, isClientSide={}, duration={}", 
+                entity != null ? entity.getName().getString() : "null", 
+                entity != null ? entity.level().isClientSide() : "unknown", 
+                durationTicks);
+            return;
+        }
         
         long currentTime = entity.level().getGameTime();
         long expireTime = currentTime + durationTicks;
         int entityId = entity.getId();
-        
+
         List<ActiveAttributeEffect> effects = ACTIVE_EFFECTS.computeIfAbsent(entityId, k -> new ArrayList<>());
         
         // 检查是否已存在相同的修饰符，如果存在则刷新时间
@@ -76,7 +84,7 @@ public class AttributeEffectManager {
         
         ServerLevel level = event.getServer().overworld(); // 获取主世界作为时间参考
         long currentTime = level.getGameTime();
-        
+
         Iterator<Map.Entry<Integer, List<ActiveAttributeEffect>>> entityIterator = ACTIVE_EFFECTS.entrySet().iterator();
         
         while (entityIterator.hasNext()) {
@@ -84,24 +92,22 @@ public class AttributeEffectManager {
             int entityId = entry.getKey();
             List<ActiveAttributeEffect> effects = entry.getValue();
             
-            // 获取实体
-            net.minecraft.world.entity.Entity entity = level.getEntity(entityId);
-            if (!(entity instanceof LivingEntity livingEntity)) {
+            // 获取实体 - 支持跨维度查找
+            LivingEntity livingEntity = findLivingEntityById(event.getServer(), entityId);
+            if (livingEntity == null) {
                 // 实体不存在或不是生物，移除所有效果
-                entityIterator.remove();
                 continue;
             }
             
-            // 检查过期效果
+            // 检查过期效果并移除属性修饰符
             Iterator<ActiveAttributeEffect> effectIterator = effects.iterator();
             while (effectIterator.hasNext()) {
                 ActiveAttributeEffect effect = effectIterator.next();
-                
                 if (currentTime >= effect.expireTime) {
-                    // 效果过期，移除属性修饰符
+                    // 先从实体身上移除属性修饰符
                     removeAttributeModifier(livingEntity, effect.attributeHolder, effect.modifierId);
+                    // 再从列表中移除记录
                     effectIterator.remove();
-
                 }
             }
             
@@ -113,6 +119,20 @@ public class AttributeEffectManager {
     }
     
     /**
+     * 跨维度查找生物实体
+     */
+    private static LivingEntity findLivingEntityById(MinecraftServer server, int entityId) {
+        // 遍历所有维度查找实体
+        for (ServerLevel level : server.getAllLevels()) {
+            net.minecraft.world.entity.Entity entity = level.getEntity(entityId);
+            if (entity instanceof LivingEntity livingEntity) {
+                return livingEntity;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 移除属性修饰符
      */
     private static void removeAttributeModifier(LivingEntity entity,
@@ -121,12 +141,10 @@ public class AttributeEffectManager {
         try {
             AttributeInstance instance = entity.getAttribute(attributeHolder);
             if (instance != null) {
-
                 instance.removeModifier(modifierId);
-
             }
-        } catch (Exception ignored) {
+        } catch (Exception ignored){
+
         }
     }
-
 }

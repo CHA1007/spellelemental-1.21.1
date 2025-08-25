@@ -9,6 +9,7 @@ import com.chadate.spellelemental.element.attachment.data.UnifiedElementAttachme
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import io.redspace.ironsspellbooks.api.events.SpellDamageEvent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -22,12 +23,7 @@ public class ElementEventHandler {
         if (event.getEntity().level().isClientSide()) {
             return;
         }
-        
-        // 额外的服务端检查，确保只在服务端执行
-        if (!(event.getEntity().level() instanceof net.minecraft.server.level.ServerLevel)) {
-            SpellElemental.LOGGER.warn("ElementEventHandler.handleElementAttachment called on non-server level!");
-            return;
-        }
+
         LivingEntity target = event.getEntity();
         String spellId = event.getSpellDamageSource().spell().getSpellId();
         String school = event.getSpellDamageSource().spell().getSchoolType().getId().toString();
@@ -72,23 +68,17 @@ public class ElementEventHandler {
 
     private static void applyAttachment(LivingEntity entity, String elementKeyLower, int duration, int attackerId) {
         // 添加详细的服务端检查日志
-        boolean isClientSide = entity.level().isClientSide();
-        boolean isServerLevel = entity.level() instanceof net.minecraft.server.level.ServerLevel;
-        SpellElemental.LOGGER.info("applyAttachment called - Entity: {}, Element: {}, Duration: {}, isClientSide: {}, isServerLevel: {}", 
-            entity.getName().getString(), elementKeyLower, duration, isClientSide, isServerLevel);
-        
+
         ElementContainerAttachment container = entity.getData(SpellAttachments.ELEMENTS_CONTAINER);
         container.setValue(elementKeyLower, duration);
         long gameTime = entity.level().getGameTime();
         // 记录攻击者信息用于tick反应追踪
         container.markAppliedWithAttacker(elementKeyLower, gameTime, attackerId);
         ElementDecaySystem.track(entity);
-        // 只向能看到该实体的玩家发送元素数据
-        PacketDistributor.sendToPlayersTrackingEntity(entity, new ElementData(entity.getId(), elementKeyLower, duration));
-        SpellElemental.LOGGER.debug("Applied element attachment: {} to {}", elementKeyLower, entity.getName().getString());
-        // 额外：向附近的玩家强制同步（防止追踪范围问题）
-        if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            for (net.minecraft.server.level.ServerPlayer player : serverLevel.players()) {
+
+        // 向附近的玩家同步
+        if (entity.level() instanceof ServerLevel serverLevel) {
+            for (ServerPlayer player : serverLevel.players()) {
                 double distance = player.distanceTo(entity);
                 if (distance <= 64.0) {
                     PacketDistributor.sendToPlayer(player, new ElementData(entity.getId(), elementKeyLower, duration));
@@ -99,6 +89,11 @@ public class ElementEventHandler {
 
     // 当玩家开始追踪（看见）某个实体时，同步该实体的元素状态快照
     public static void onStartTracking(PlayerEvent.StartTracking event) {
+        // 只在服务端处理元素附着，客户端通过网络同步获取
+        if (event.getEntity().level().isClientSide()) {
+            return;
+        }
+
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         Entity target = event.getTarget();
         if (!(target instanceof LivingEntity living)) return;

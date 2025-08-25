@@ -39,6 +39,11 @@ public final class ElementReactionRegistry {
      */
     private static final Map<String, List<AttributeEffect>> ATTRIBUTE_EFFECTS = new HashMap<>();
 
+    /**
+     * 按方向的属性效果：key = "a->b"，value = attribute effects 列表
+     */
+    private static final Map<String, List<AttributeEffect>> DIRECTIONAL_ATTRIBUTE_EFFECTS = new HashMap<>();
+
     // -------------- tick 需求/消耗 --------------
     /** reaction_id -> TickRule 列表（支持变体） */
     private static final Map<String, List<TickRule>> TICK_RULES = new HashMap<>();
@@ -237,6 +242,28 @@ public final class ElementReactionRegistry {
      */
     public static List<AttributeEffect> getAttributeEffects(String reactionId) {
         List<AttributeEffect> list = ATTRIBUTE_EFFECTS.get(reactionId);
+        return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
+    }
+
+    /**
+     * 为某个有序方向(source->target)添加属性效果。
+     */
+    public static void addDirectionalAttributeEffect(String source, String target, AttributeEffect effect) {
+        String a = safeElem(source);
+        String b = safeElem(target);
+        if (a.isEmpty() || b.isEmpty() || effect == null) return;
+        String key = makeOrderedKey(a, b);
+        DIRECTIONAL_ATTRIBUTE_EFFECTS.computeIfAbsent(key, k -> new ArrayList<>()).add(effect);
+    }
+
+    /**
+     * 获取某个有序方向(source->target)的属性效果列表；若无返回空不可变列表。
+     */
+    public static List<AttributeEffect> getDirectionalAttributeEffects(String source, String target) {
+        String a = safeElem(source);
+        String b = safeElem(target);
+        if (a.isEmpty() || b.isEmpty()) return Collections.emptyList();
+        List<AttributeEffect> list = DIRECTIONAL_ATTRIBUTE_EFFECTS.get(makeOrderedKey(a, b));
         return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
     }
 

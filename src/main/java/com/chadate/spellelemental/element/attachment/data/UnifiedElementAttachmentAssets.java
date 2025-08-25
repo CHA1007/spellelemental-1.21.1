@@ -79,6 +79,27 @@ public final class UnifiedElementAttachmentAssets {
         return null;
     }
 
+    /**
+     * 获取所有图标映射（用于网络同步）
+     */
+    public static Map<String, String> getAllIcons() {
+        return Map.copyOf(ELEMENT_ID_TO_ICON);
+    }
+
+    /**
+     * 获取所有粒子效果映射（用于网络同步）
+     */
+    public static Map<String, String> getAllParticleEffects() {
+        return Map.copyOf(ELEMENT_ID_TO_PARTICLE);
+    }
+
+    /**
+     * 获取所有学派映射（用于网络同步）
+     */
+    public static Map<String, String> getAllSchools() {
+        return Map.copyOf(ELEMENT_ID_TO_SCHOOL);
+    }
+
     private static String toBaseKey(String key) {
         if (key == null) return "";
         int idx = key.indexOf(':');
