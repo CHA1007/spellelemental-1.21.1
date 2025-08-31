@@ -1,0 +1,11 @@
+{
+  "element_id": "physical_resistance_down",
+  "visual": {
+    "particle_effect": "spellelemental:physical_resistance_down",
+    "icon": "spellelemental:textures/elements/physical_resistance_down_element.png"
+  },
+  "school": "evocation",
+  "max_stack": 10,
+  "decay_per_second": 1.0,
+  "description": "物理抗性下降，受到的物理伤害增加"
+}

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " F ",
+    " B ",
+    "   "
+  ],
+  "key": {
+    "F": {
+      "item": "minecraft:fire_charge"
+    },
+    "B": {
+      "item": "minecraft:glass_bottle"
+    }
+  },
+  "result": {
+    "item": "spellelemental:fire_sword_oil",
+    "count": 1
+  }
+}

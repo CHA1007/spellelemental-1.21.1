@@ -1,4 +1,5 @@
 {
+  "enchantment.spellelemental.astral_blessing": "星耀祝福",
   "attribute.spellelemental.astral_blessing": "星耀祝福",
   "attribute.spellelemental.spell_crit_rate": "法术暴击率",
   "attribute.spellelemental.spell_crit_damage": "法术暴击伤害",
@@ -14,6 +15,9 @@
   "reaction.spellelemental.overload": "超载",
   "reaction.spellelemental.vaporize": "蒸发",
 
+  "element.spellelemental.physical_resistance_down": "物理抗性下降",
+  "element.spellelemental.physical_resistance_down.description": "物理抗性下降，受到的物理伤害增加",
+
   "gui.spellelemental.debug.title": "元素调试信息",
   "gui.spellelemental.debug.element_status": "元素状态",
   "gui.spellelemental.debug.reaction_triggered": "触发反应: %s",
@@ -24,6 +28,19 @@
   "tooltip.spellelemental.element_reaction": "元素反应",
   "tooltip.spellelemental.duration": "持续时间: %d 秒",
   "tooltip.spellelemental.damage_bonus": "伤害加成: +%.1f%%",
+  
+  "message.spellelemental.sword_oil.limit_reached": "%s元素已达上限(%d)，无法继续添加",
+  "message.spellelemental.sword_oil.partial_extended": "%s元素已增加至上限 %d/%d",
+  "message.spellelemental.sword_oil.extended": "%s元素已增加",
+  "message.spellelemental.sword_oil.applied": "%s元素已附着",
+  "message.spellelemental.sword_oil.applied_limited": "%s元素已附着 (限制为 %d/%d)",
+  "message.spellelemental.sword_oil.different_element": "剑已附着%s元素，无法附着%s元素。请先清除现有元素",
+  "message.spellelemental.sword_oil.element_cleared": "已清除%s元素 (%d点)",
+  "message.spellelemental.sword_oil.no_element_to_clear": "剑上没有元素附着，无需清除",
+  
+  "tooltip.spellelemental.sword.element_attachment": "元素附着: %s",
+  "tooltip.spellelemental.sword.element_amount": "元素量: %s 点",
+  "tooltip.spellelemental.sword.remaining_attacks": "剩余攻击次数: %d 次",
 
   "death.attack.spellelemental.melt": "%1$s 被融化反应烧毁了",
   "death.attack.spellelemental.overload": "%1$s 被超载反应炸死了",
@@ -32,6 +49,42 @@
 
   "effect.spellelemental.element_attachment": "元素附着",
   "effect.spellelemental.element_attachment.description": "受到元素影响",
+
+  "block.spellelemental.sword_stand": "剑座",
+  "block.spellelemental.stellar_fragment_ore": "星辰矿石",
+  "block.spellelemental.deepslate_stellar_fragment_ore": "深层星辰矿石",
+
+  "item.spellelemental.fire_sword_oil": "火焰精油",
+  "item.spellelemental.ice_sword_oil": "冰霜精油",
+  "item.spellelemental.lightning_sword_oil": "雷电精油",
+  "item.spellelemental.nature_sword_oil": "自然精油",
+  "item.spellelemental.blood_sword_oil": "鲜血精油",
+  "item.spellelemental.stellar_fragment": "星辰碎片",
+  
+  "fluid_type.spellelemental.stellar_essence": "萃星辉液",
+  "fluid_type.spellelemental.fire_sword_oil": "火焰精油",
+  "fluid_type.spellelemental.ice_sword_oil": "冰霜精油",
+  "fluid_type.spellelemental.lightning_sword_oil": "雷电精油",
+  "fluid_type.spellelemental.blood_sword_oil": "鲜血精油",
+  "fluid_type.spellelemental.nature_sword_oil": "自然精油",
+  "element.spellelemental.fire": "火焰",
+  "element.spellelemental.ice": "冰霜",
+  "element.spellelemental.lightning": "雷电",
+  "element.spellelemental.nature": "自然",
+  "element.spellelemental.blood": "鲜血",
+
+  "tooltip.spellelemental.sword_oil.element": "元素类型: %s",
+  "tooltip.spellelemental.sword_oil.amount": "元素量: %s 点",
+  "tooltip.spellelemental.sword_oil.title": "元素属性",
+
+  "message.spellelemental.sword_oil.depleted": "武器上的%s元素已耗尽",
+
+  "jei.spellelemental.category.sword_oil_application": "元素附魔",
+  "jei.spellelemental.element_type": "元素类型: %s",
+  "jei.spellelemental.element_amount": "元素量: %d 点",
+  "jei.spellelemental.usage_instruction": "将剑放在剑座上，右键使用精油",
+  "jei.spellelemental.drag_to_rotate": "拖拽旋转查看剑座",
+
 
   "itemGroup.spellelemental": "法术元素"
 }

@@ -20,6 +20,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
@@ -30,15 +31,16 @@ import java.util.Map;
  * 负责检测、触发和执行元素反应
  */
 public class ElementReactionHandler {
+
     /**
      * 伤害类型反应
      */
-    public static void damageTypeReaction(SpellDamageEvent event) {
+    public static void damageTypeReaction(LivingDamageEvent.Pre event) {
         // 若无任何 damage 类型的反应或未建立任何组合索引，直接返回
         if (ElementReactionRegistry.getDamageReactions().isEmpty()) return;
         if (!ElementReactionRegistry.hasAnyDamageCombos()) return;
         LivingEntity victim = event.getEntity();
-        DamageSource dmgSource = event.getSpellDamageSource();
+        DamageSource dmgSource = event.getSource();
         Entity direct = dmgSource.getDirectEntity();
         Entity attacker = dmgSource.getEntity();
         
@@ -253,7 +255,7 @@ public class ElementReactionHandler {
 
     // -------------- 通用效果执行 --------------
 
-    private static void applyEffectsForReaction(SpellDamageEvent event, String reactionId,
+    private static void applyEffectsForReaction(LivingDamageEvent.Pre event, String reactionId,
                                                 String matchedSource, String matchedTarget,
                                                 Entity attacker, LivingEntity victim,
                                                 int elementsAmount) {
@@ -266,7 +268,7 @@ public class ElementReactionHandler {
         }
         if (effects.isEmpty()) return;
 
-        float damage = event.getAmount();
+        float damage = event.getOriginalDamage();
         for (ElementReactionRegistry.ReactionEffect eff : effects) {
             if (eff == null || eff.type.isEmpty()) continue;
             switch (eff.type) {
@@ -286,8 +288,8 @@ public class ElementReactionHandler {
                 }
             }
         }
-        if (damage != event.getAmount()) {
-            event.setAmount(damage);
+        if (damage != event.getOriginalDamage()) {
+            event.setNewDamage(damage);
         }
         
         // 应用属性效果（优先方向化，无则回退全局）
@@ -433,7 +435,7 @@ public class ElementReactionHandler {
      * - 半径 eff.radius <= 0 则不生效。
      * - 伤害来源优先继承 event 的 DamageSource；其他 source 模式暂留扩展。
      */
-    private static void applyAoeEffect(SpellDamageEvent event, float baseDamage,
+    private static void applyAoeEffect(LivingDamageEvent.Pre event, float baseDamage,
                                        ElementReactionRegistry.ReactionEffect eff,
                                        Entity attackerEntity, LivingEntity victim,
                                        int elementsAmount) {
@@ -468,7 +470,7 @@ public class ElementReactionHandler {
         if (finalDamage <= 0f) return;
 
         // 伤害类型处理：若配置了 damage_type，按该类型构造 DamageSource，否则继承原事件
-        DamageSource src = event.getSpellDamageSource();
+        DamageSource src = event.getSource();
         if (eff.damageType != null && !eff.damageType.isEmpty()) {
             try {
                 ResourceLocation rl = ResourceLocation.tryParse(eff.damageType);
@@ -479,8 +481,8 @@ public class ElementReactionHandler {
                 var key = ResourceKey.create(Registries.DAMAGE_TYPE, rl);
                 Holder<DamageType> holder = reg.getHolder(key).orElse(null);
                 if (holder != null) {
-                    Entity direct = event.getSpellDamageSource().getDirectEntity();
-                    Entity causing = (attackerEntity != null) ? attackerEntity : event.getSpellDamageSource().getEntity();
+                    Entity direct = event.getSource().getDirectEntity();
+                    Entity causing = (attackerEntity != null) ? attackerEntity : event.getSource().getEntity();
                     src = new DamageSource(holder, direct, causing);
                 }
             } catch (Throwable t) {
@@ -637,37 +639,33 @@ public class ElementReactionHandler {
      */
     private static void applyExtraDamageFromTick(LivingEntity center, ElementReactionRegistry.ReactionEffect eff, int elementsAmount) {
         if (center == null || center.level().isClientSide()) return;
-        // 计算伤害：使用最后一个触发燃烧反应的攻击者的星耀祝福
-        // 燃烧反应需要火元素+自然元素，找到最后附着的那个元素的攻击者
+        
+        // 获取攻击者的星耀祝福属性
+        float astral = 0f;
         ElementContainerAttachment container = center.getData(SpellAttachments.ELEMENTS_CONTAINER);
         
-        // 获取火元素和自然元素的最后附着时间和攻击者
-        long fireTime = container.getLastApplied("fire");
-        long natureTime = container.getLastApplied("nature");
-        int lastAttackerId = -1;
-        
-        // 使用最后附着的元素的攻击者（即触发燃烧反应的攻击者）
-        if (fireTime > natureTime) {
-            lastAttackerId = container.getLastAttackerId("fire");
-        } else if (natureTime > fireTime) {
-            lastAttackerId = container.getLastAttackerId("nature");
+        // 尝试从各个元素中找到最近的攻击者
+        LivingEntity attacker = null;
+        for (String elementId : container.snapshot().keySet()) {
+            int attackerId = container.getLastAttackerId(elementId);
+            if (attackerId != -1) {
+                // 通过ID查找攻击者实体
+                var entity = center.level().getEntity(attackerId);
+                if (entity instanceof LivingEntity livingAttacker) {
+                    attacker = livingAttacker;
+                    break; // 找到第一个有效攻击者即可
+                }
+            }
         }
         
-        // 尝试获取攻击者的星耀祝福，失败则使用受害者自身的
-        float astral;
-        if (lastAttackerId != -1) {
-            Entity attackerEntity = center.level().getEntity(lastAttackerId);
-            if (attackerEntity instanceof LivingEntity attacker) {
-                astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
-            } else {
-                // 攻击者不存在或不是生物，回退到受害者自身
-                astral = (float) center.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
-            }
+        if (attacker != null) {
+            astral = (float) attacker.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
         } else {
-            // 没有攻击者信息，回退到受害者自身
+            // 如果找不到攻击者，使用被攻击者的星耀祝福作为后备
             astral = (float) center.getAttributeValue(ModAttributes.ASTRAL_BLESSING);
         }
         float finalDamage;
+
         if (eff.formula != null && !eff.formula.isEmpty()) {
             if ("CalculateOverloadDamage".equals(eff.formula)) {
                 int effectiveAmount = (elementsAmount == 0 ? 10 : elementsAmount);

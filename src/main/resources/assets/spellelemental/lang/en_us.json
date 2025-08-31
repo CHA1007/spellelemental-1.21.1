@@ -1,4 +1,5 @@
 {
+  "enchantment.spellelemental.astral_blessing": "Astral Blessing",
   "attribute.spellelemental.astral_blessing": "Astral Blessing",
   "attribute.spellelemental.spell_crit_rate": "Spell Critical Rate",
   "attribute.spellelemental.spell_crit_damage": "Spell Critical Damage",
@@ -13,6 +14,9 @@
   "reaction.spellelemental.melt": "Melt",
   "reaction.spellelemental.overload": "Overload",
   "reaction.spellelemental.vaporize": "Vaporize",
+
+  "element.spellelemental.physical_resistance_down": "Physical Resistance Down",
+  "element.spellelemental.physical_resistance_down.description": "Physical resistance decreased, takes increased physical damage",
 
   "gui.spellelemental.debug.title": "Element Debug Info",
   "gui.spellelemental.debug.element_status": "Element Status",
@@ -32,6 +36,54 @@
 
   "effect.spellelemental.element_attachment": "Element Attachment",
   "effect.spellelemental.element_attachment.description": "Affected by elemental forces",
+
+  "block.spellelemental.sword_stand": "Sword Stand",
+  "block.spellelemental.stellar_fragment_ore": "Stellar Fragment Ore",
+  "block.spellelemental.deepslate_stellar_fragment_ore": "Deepslate Stellar Fragment Ore",
+
+  "item.spellelemental.fire_sword_oil": "Fire Essential Oil",
+  "item.spellelemental.ice_sword_oil": "Ice Essential Oil",
+  "item.spellelemental.lightning_sword_oil": "Lightning Essential Oil",
+  "item.spellelemental.nature_sword_oil": "Nature Essential Oil",
+  "item.spellelemental.blood_sword_oil": "Blood Essential Oil",
+  "element.spellelemental.fire": "Fire",
+  "element.spellelemental.ice": "Ice",
+  "element.spellelemental.lightning": "Lightning",
+  "element.spellelemental.nature": "Nature",
+  "element.spellelemental.blood": "Blood",
+
+  "tooltip.spellelemental.sword_oil.title": "Element Properties",
+  "tooltip.spellelemental.sword_oil.element": "Element Type: %s",
+  "tooltip.spellelemental.sword_oil.amount": "Element Amount: %s points",
+
+  "message.spellelemental.sword_oil.limit_reached": "%s element has reached limit (%d), cannot add more",
+  "message.spellelemental.sword_oil.partial_extended": "%s element increased to limit %d/%d",
+  "message.spellelemental.sword_oil.extended": "%s element increased",
+  "message.spellelemental.sword_oil.applied": "%s element attached",
+  "message.spellelemental.sword_oil.applied_limited": "%s element attached (limited to %d/%d)",
+  "message.spellelemental.sword_oil.different_element": "Sword already has %s element, cannot attach %s element. Please clear existing element first",
+  "message.spellelemental.sword_oil.element_cleared": "Cleared %s element (%d points)",
+  "message.spellelemental.sword_oil.no_element_to_clear": "No element attached to sword, nothing to clear",
+  "message.spellelemental.sword_oil.depleted": "%s element on weapon has been depleted",
+
+  "tooltip.spellelemental.sword.element_attachment": "Element Attachment: %s",
+  "tooltip.spellelemental.sword.element_amount": "Element Amount: %s points",
+  "tooltip.spellelemental.sword.remaining_attacks": "Remaining Attacks: %d times",
+
+  "jei.spellelemental.category.sword_oil_application": "Essential Oil Application",
+  "jei.spellelemental.element_type": "Element Type: %s",
+  "jei.spellelemental.element_amount": "Element Amount: %d points",
+  "jei.spellelemental.usage_instruction": "Place sword on sword stand, right-click with essential oil",
+  "jei.spellelemental.drag_to_rotate": "Drag to rotate sword stand",
+
+  "item.spellelemental.stellar_fragment": "Stellar Fragment",
+  
+  "fluid_type.spellelemental.stellar_essence": "Stellar Essence",
+  "fluid_type.spellelemental.fire_sword_oil": "Fire Essential Oil",
+  "fluid_type.spellelemental.ice_sword_oil": "Ice Essential Oil",
+  "fluid_type.spellelemental.lightning_sword_oil": "Lightning Essential Oil",
+  "fluid_type.spellelemental.blood_sword_oil": "Blood Essential Oil",
+  "fluid_type.spellelemental.nature_sword_oil": "Nature Essential Oil",
 
   "itemGroup.spellelemental": "Spell Elemental"
 }

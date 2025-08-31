@@ -11,7 +11,7 @@
         "damage": [
           {
             "type": "extra",
-            "multiplier": 1.5,
+            "multiplier": 2.5,
             "formula": "CalculateOverloadDamage",
             "damage_type": "irons_spellbooks:fire_magic"
           }

@@ -23,5 +23,12 @@ public class NetworkRegistry {
             ElementAttachmentSyncPacket.STREAM_CODEC,
             ElementAttachmentSyncPacket::handleClient
         );
+        
+        // 注册动作栏消息数据包
+        registrar.playToClient(
+            ActionBarMessagePacket.TYPE,
+            ActionBarMessagePacket.STREAM_CODEC,
+            ActionBarMessagePacket::handleClient
+        );
     }
 }

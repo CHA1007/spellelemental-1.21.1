@@ -23,6 +23,9 @@ public class ServerConfig {
     // 每个拼写元素附件以“modid：spell_id=element_id”的形式覆盖;多个条目，以 ';' 分隔
     public static final ModConfigSpec.ConfigValue<String> SPELL_ELEMENT_OVERRIDES_TEXT;
 
+    // 武器相关配置
+    public static final IntValue WEAPON_MAX_ELEMENT_AMOUNT;
+
     public static final ModConfigSpec SPEC;
 
     private static volatile Map<ResourceLocation, Integer> overridesCache;
@@ -31,38 +34,44 @@ public class ServerConfig {
     static {
         BUILDER.push("element_attachment");
         ELEMENT_ATTACHMENT_DEFAULT = BUILDER
-                .comment("Default element attachment amount for spells without explicit override")
+                .comment("没有显式覆盖的法术的默认元素附着量")
                 .defineInRange("default", 200, 0, Integer.MAX_VALUE);
 
         ELEMENT_ICD_HIT_STEP = BUILDER
                 .comment(
-                        "ICD hit step: allow elemental application on hits 1, 1+step, 1+2*step, ...",
-                        "Set to 3 to allow 1st, 4th, 7th hits, etc.")
+                        "ICD 攻击步长：允许在第 1、1+步长、1+2*步长... 次攻击时应用元素",
+                        "设置为 3 表示允许第 1、4、7 次攻击等")
                 .defineInRange("icd_hit_step", 3, 1, Integer.MAX_VALUE);
 
         ELEMENT_ICD_TIME_TICKS = BUILDER
                 .comment(
-                        "ICD time window in ticks: allow application if last application is older than this window.",
-                        "50 ticks = 2.5 seconds at 20 tps")
+                        "ICD 时间窗口（游戏刻）：如果上次应用时间超过此窗口则允许应用",
+                        "50 刻 = 2.5 秒（20 TPS）")
                 .defineInRange("icd_time_ticks", 50, 0, Integer.MAX_VALUE);
 
         ELEMENT_ATTACHMENT_OVERRIDES_TEXT = BUILDER
                 .comment(
-                        "Per-spell overrides in the format modid:spell_id=amount.",
-                        "Multiple entries separated by comma.",
-                        "Example: irons_spellbooks:firebolt=250, irons_spellbooks:ice_shard=150",
-                        "Unknown or malformed entries will be ignored.")
+                        "单个法术覆盖，格式：modid:spell_id=数量",
+                        "多个条目用逗号分隔",
+                        "示例：irons_spellbooks:firebolt=250, irons_spellbooks:ice_shard=150",
+                        "未知或格式错误的条目将被忽略")
                 .define("overrides", "");
 
         SPELL_ELEMENT_OVERRIDES_TEXT = BUILDER
                 .comment(
-                        "Per-spell element attachment overrides in the format modid:spell_id=element_id.",
-                        "This allows specific spells to attach custom elements instead of using school-based mapping.",
-                        "Multiple entries separated by comma.",
-                        "Example: irons_spellbooks:firebolt=lightning, irons_spellbooks:ice_shard=fire",
-                        "Element IDs should match those defined in element_attachments data files.",
-                        "Unknown or malformed entries will be ignored.")
+                        "单个法术元素附着覆盖，格式：modid:spell_id=元素ID",
+                        "允许特定法术附着自定义元素而不是使用基于学派的映射",
+                        "多个条目用逗号分隔",
+                        "示例：irons_spellbooks:firebolt=lightning, irons_spellbooks:ice_shard=fire",
+                        "元素ID应与 element_attachments 数据文件中定义的匹配",
+                        "未知或格式错误的条目将被忽略")
                 .define("spell_element_overrides", "");
+        BUILDER.pop();
+
+        BUILDER.push("weapon");
+        WEAPON_MAX_ELEMENT_AMOUNT = BUILDER
+                .comment("武器可附着的最大元素量")
+                .defineInRange("max_element_amount", 20000, 1, Integer.MAX_VALUE);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
@@ -97,6 +106,11 @@ public class ServerConfig {
 
     public static int getIcdTimeTicks() {
         return ELEMENT_ICD_TIME_TICKS.get();
+    }
+
+    // ----- 武器配置获取方法 -----
+    public static int getWeaponMaxElementAmount() {
+        return WEAPON_MAX_ELEMENT_AMOUNT.get();
     }
 
     private static Map<ResourceLocation, Integer> parseOverrides(String text) {

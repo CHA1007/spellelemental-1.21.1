@@ -1,6 +1,7 @@
 package com.chadate.spellelemental;
 
-import com.chadate.spellelemental.register.ModAttributes;
+import com.chadate.spellelemental.register.*;
+import com.chadate.spellelemental.integration.jei.data.SwordOilDataManager;
 import com.chadate.spellelemental.command.DebugCommand;
 import com.chadate.spellelemental.data.SpellAttachments;
 import com.chadate.spellelemental.config.ClientConfig;
@@ -14,16 +15,16 @@ import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import com.chadate.spellelemental.event.heal.HealingEventHandler;
 import com.chadate.spellelemental.event.physical.PhysicalEventHandler;
 import com.chadate.spellelemental.config.ServerConfig;
-import com.chadate.spellelemental.register.ModSounds;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 
 import net.neoforged.neoforge.common.NeoForge;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +36,14 @@ public class SpellElemental {
 
     public SpellElemental(IEventBus modEventBus, ModContainer modContainer) {
         ModAttributes.register(modEventBus);
+        ModBlocks.register(modEventBus);
+        ModBlockEntities.register(modEventBus);
+        ModItems.register(modEventBus);
+        ModCreativeTabs.register(modEventBus);
+        ModParticles.register(modEventBus);
         SpellAttachments.register(modEventBus);
         ModSounds.register(modEventBus);
+        ModFluid.register(modEventBus);
 
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, SpellDamageCritHandler::applyCritBonus);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, PhysicalEventHandler::applyPhysicalBonus);
@@ -45,6 +52,7 @@ public class SpellElemental {
         NeoForge.EVENT_BUS.addListener(ElementReactionHandler::tickTypeReaction);
         NeoForge.EVENT_BUS.addListener(ElementReactionDataRegistry::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(UnifiedElementAttachmentDataRegistry::onAddReloadListeners);
+        NeoForge.EVENT_BUS.addListener(SwordOilDataManager::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(ElementEventHandler::onStartTracking);
         NeoForge.EVENT_BUS.addListener(HealingEventHandler::onLivingHeal);
         NeoForge.EVENT_BUS.addListener(ElementDecaySystem::elementDecay);
@@ -67,4 +75,7 @@ public class SpellElemental {
         });
     }
 
+    public static ResourceLocation id(@NotNull String path) {
+        return ResourceLocation.fromNamespaceAndPath(SpellElemental.MODID, path);
+    }
 }

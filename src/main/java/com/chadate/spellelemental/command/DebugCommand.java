@@ -33,5 +33,6 @@ public final class DebugCommand {
 
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         DebugCommand.register(event.getDispatcher());
+        AttributeTestCommand.register(event.getDispatcher());
     }
 } 

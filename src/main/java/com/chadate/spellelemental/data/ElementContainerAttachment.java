@@ -5,9 +5,7 @@ import java.util.Map;
 
 public class ElementContainerAttachment {
     private final Map<String, Integer> elementIdToValue = new HashMap<>();
-    // 记录最近一次附着的游戏时间（server level.getGameTime()）。不影响现有 API。
     private final Map<String, Long> lastAppliedGameTime = new HashMap<>();
-    // 记录最近一次附着该元素的攻击者ID（用于tick反应追踪原始攻击者）
     private final Map<String, Integer> lastAttackerIds = new HashMap<>();
 
     public int getValue(String elementId) {
@@ -20,7 +18,6 @@ public class ElementContainerAttachment {
         String key = elementId.toLowerCase();
         if (value <= 0) {
             elementIdToValue.remove(key);
-            // 不主动清 lastApplied，保留最近一次时间用于判定（可选：也可一起清除）
         } else {
             elementIdToValue.put(key, value);
         }

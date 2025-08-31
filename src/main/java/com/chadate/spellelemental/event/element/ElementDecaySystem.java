@@ -1,6 +1,5 @@
 package com.chadate.spellelemental.event.element;
 
-import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.network.ElementData;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;

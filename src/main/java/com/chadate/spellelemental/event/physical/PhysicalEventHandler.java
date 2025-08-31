@@ -12,7 +12,7 @@ public class PhysicalEventHandler {
         if (event.getEntity().level().isClientSide()) {
             return;
         }
-        
+
         LivingEntity target = event.getEntity();
         DamageSource source = event.getSource();
         float originalDamage = event.getNewDamage();
@@ -22,11 +22,11 @@ public class PhysicalEventHandler {
         if (source.getEntity() instanceof LivingEntity livingAttacker) {
             attacker = livingAttacker;
         }
-        
+
         // 使用物理伤害计算系统
-        PhysicalDamageCalculator.PhysicalDamageResult result = 
+        PhysicalDamageCalculator.PhysicalDamageResult result =
                 PhysicalDamageCalculator.calculateDamage(originalDamage, attacker, target, source);
-        
+
         if (result.wasModified()) {
             event.setNewDamage(result.finalDamage());
         }
