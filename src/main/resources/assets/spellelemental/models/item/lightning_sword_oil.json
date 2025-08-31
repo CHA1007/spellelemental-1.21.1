@@ -1,6 +1,0 @@
-{
-  "parent": "item/generated",
-  "textures": {
-    "layer0": "spellelemental:item/lightning_sword_oil"
-  }
-}

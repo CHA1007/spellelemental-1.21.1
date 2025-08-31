@@ -1,8 +1,0 @@
-{
-  "element_id": "nature",
-  "school": "irons_spellbooks:nature",
-  "visual": {
-    "particle_effect": "irons_spellbooks:acid",
-    "icon": "spellelemental:textures/elements/nature_element.png"
-  }
-}

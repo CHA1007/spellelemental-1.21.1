@@ -1,8 +1,0 @@
-{
-  "element_id": "water",
-  "school": "irons_spellbooks:aqua",
-  "visual": {
-    "particle_effect": "",
-    "icon": "spellelemental:textures/elements/water_element.png"
-  }
-}

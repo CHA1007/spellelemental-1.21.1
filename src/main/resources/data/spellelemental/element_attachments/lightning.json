@@ -1,8 +1,0 @@
-{
-  "element_id": "lightning",
-  "school": "irons_spellbooks:lightning",
-  "visual": {
-    "particle_effect": "irons_spellbooks:electricity",
-    "icon": "spellelemental:textures/elements/lightning_element.png"
-  }
-}

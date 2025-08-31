@@ -1,8 +1,0 @@
-{
-  "element_id": "blood",
-  "school": "irons_spellbooks:blood",
-  "visual": {
-    "particle_effect": "irons_spellbooks:blood",
-    "icon": "spellelemental:textures/elements/blood_element.png"
-  }
-}

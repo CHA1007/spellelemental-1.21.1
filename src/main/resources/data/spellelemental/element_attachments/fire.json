@@ -1,8 +1,0 @@
-{
-  "element_id": "fire",
-  "school": "irons_spellbooks:fire",
-  "visual": {
-    "particle_effect": "irons_spellbooks:fire",
-    "icon": "spellelemental:textures/elements/fire_element.png"
-  }
-}

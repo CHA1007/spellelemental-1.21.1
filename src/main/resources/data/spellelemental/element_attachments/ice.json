@@ -1,8 +1,0 @@
-{
-  "element_id": "ice",
-  "school": "irons_spellbooks:ice",
-  "visual": {
-    "particle_effect": "irons_spellbooks:snowflake",
-    "icon": "spellelemental:textures/elements/ice_element.png"
-  }
-}
