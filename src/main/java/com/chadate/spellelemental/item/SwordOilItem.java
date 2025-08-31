@@ -12,23 +12,23 @@ import java.util.List;
  * 剑油物品基类
  */
 public class SwordOilItem extends Item {
-    private final String elementType;
-    private final int elementAmount;
-    
-    public SwordOilItem(Properties properties, String elementType, int elementAmount) {
+
+    public SwordOilItem(Properties properties) {
         super(properties);
-        this.elementType = elementType;
-        this.elementAmount = elementAmount;
     }
-    
+
     public String getElementType() {
-        return elementType;
+        // 元素类型完全由数据包 sword_oil_config.json 控制
+        // 从配置加载器中动态获取当前物品的元素类型
+        var config = com.chadate.spellelemental.integration.jei.data.SwordOilConfigLoader.getSwordOilConfig(this);
+        return config != null ? config.getElement() : ""; // 如果配置不存在，返回空字符串
     }
     
     public int getElementAmount() {
-        // 精油元素量由数据包 sword_oil_config.json 控制
-        // 这里返回构造函数传入的默认值，实际使用时会从数据包获取
-        return elementAmount;
+        // 精油元素量完全由数据包 sword_oil_config.json 控制
+        // 从配置加载器中动态获取当前物品的元素量
+        var config = com.chadate.spellelemental.integration.jei.data.SwordOilConfigLoader.getSwordOilConfig(this);
+        return config != null ? config.getAmount() : 0; // 如果配置不存在，返回0
     }
     
     @Override

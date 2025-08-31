@@ -14,7 +14,9 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -55,6 +57,7 @@ public class SpellElementalJEIPlugin implements IModPlugin {
     
     /**
      * 创建剑油应用配方列表
+     * 支持动态配置加载，如果配置为空则创建基础配方用于展示
      */
     private List<SwordOilApplicationRecipe> createSwordOilApplicationRecipes() {
         List<SwordOilApplicationRecipe> recipes = new ArrayList<>();
@@ -65,24 +68,88 @@ public class SpellElementalJEIPlugin implements IModPlugin {
         // 获取所有配置的剑油
         List<SwordOilConfigLoader.SwordOilConfig> swordOilConfigs = SwordOilConfigLoader.getSwordOilConfigs();
         
-        // 为每种剑和每种剑油创建配方
-        for (ItemStack sword : swords) {
-            for (SwordOilConfigLoader.SwordOilConfig oilConfig : swordOilConfigs) {
-                ItemStack swordOilItem = oilConfig.getItemStack();
-                if (!swordOilItem.isEmpty()) {
-                    recipes.add(new SwordOilApplicationRecipe(
-                        sword.copy(),                                           // 输入剑
-                        swordOilItem,                                          // 剑油物品（从配置）
-                        new ItemStack(ModBlocks.SWORD_STAND.get()),            // 剑座
-                        createEnchantedSword(sword.getItem(), oilConfig.getElement(), oilConfig.getAmount()), // 输出的附着元素的剑
-                        oilConfig.getElement(),                                // 元素类型（从配置）
-                        oilConfig.getAmount()                                  // 元素量（从配置）
-                    ));
+        // 如果配置为空（数据包还未加载），创建基础配方用于展示
+        if (swordOilConfigs.isEmpty()) {
+            SpellElemental.LOGGER.info("精油配置为空，创建基础展示配方");
+            recipes.addAll(createFallbackRecipes(swords));
+        } else {
+            // 使用实际配置创建配方
+            for (ItemStack sword : swords) {
+                for (SwordOilConfigLoader.SwordOilConfig oilConfig : swordOilConfigs) {
+                    ItemStack swordOilItem = oilConfig.getItemStack();
+                    if (!swordOilItem.isEmpty()) {
+                        recipes.add(new SwordOilApplicationRecipe(
+                            sword.copy(),                                           // 输入剑
+                            swordOilItem,                                          // 剑油物品（从配置）
+                            new ItemStack(ModBlocks.SWORD_STAND.get()),            // 剑座
+                            createEnchantedSword(sword.getItem(), oilConfig.getElement(), oilConfig.getAmount()), // 输出的附着元素的剑
+                            oilConfig.getElement(),                                // 元素类型（从配置）
+                            oilConfig.getAmount()                                  // 元素量（从配置）
+                        ));
+                    }
                 }
             }
         }
         
         return recipes;
+    }
+    
+    /**
+     * 创建回退配方（当配置数据未加载时使用）
+     * 基于注册的精油物品创建基础展示配方
+     */
+    private List<SwordOilApplicationRecipe> createFallbackRecipes(List<ItemStack> swords) {
+        List<SwordOilApplicationRecipe> fallbackRecipes = new ArrayList<>();
+        
+        // 获取所有注册的精油物品
+        List<ItemStack> oilItems = getAllSwordOilItems();
+        
+        // 为每种剑和每种精油创建基础配方
+        for (ItemStack sword : swords) {
+            for (ItemStack oilItem : oilItems) {
+                if (oilItem.getItem() instanceof com.chadate.spellelemental.item.SwordOilItem swordOilItem) {
+                    // 从物品实例动态获取配置（如果可用）
+                    String element = swordOilItem.getElementType();
+                    int amount = swordOilItem.getElementAmount();
+                    
+                    // 如果动态获取失败，使用默认值
+                    if (element.isEmpty()) {
+                        element = "unknown";
+                    }
+                    if (amount <= 0) {
+                        amount = 1000; // 默认展示数量
+                    }
+                    
+                    fallbackRecipes.add(new SwordOilApplicationRecipe(
+                        sword.copy(),                                           // 输入剑
+                        oilItem.copy(),                                        // 剑油物品
+                        new ItemStack(ModBlocks.SWORD_STAND.get()),            // 剑座
+                        createEnchantedSword(sword.getItem(), element, amount), // 输出的附着元素的剑
+                        element,                                               // 元素类型
+                        amount                                                 // 元素量
+                    ));
+                }
+            }
+        }
+        
+        return fallbackRecipes;
+    }
+    
+    /**
+     * 获取所有注册的精油物品
+     */
+    private List<ItemStack> getAllSwordOilItems() {
+        List<ItemStack> oilItems = new ArrayList<>();
+        
+        // 遍历物品注册表，查找所有 SwordOilItem
+        for (var entry : net.minecraft.core.registries.BuiltInRegistries.ITEM.entrySet()) {
+            Item item = entry.getValue();
+            if (item instanceof com.chadate.spellelemental.item.SwordOilItem) {
+                oilItems.add(new ItemStack(item));
+            }
+        }
+        
+        return oilItems;
     }
     
     /**

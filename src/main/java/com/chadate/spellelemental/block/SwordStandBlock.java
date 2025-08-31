@@ -1,10 +1,8 @@
 package com.chadate.spellelemental.block;
 
-import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.block.entity.SwordStandBlockEntity;
 import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.integration.jei.data.SwordOilConfigLoader;
-import com.chadate.spellelemental.integration.jei.data.SwordOilDataManager;
 import com.chadate.spellelemental.util.ActionBarMessageUtil;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
@@ -27,7 +25,6 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;

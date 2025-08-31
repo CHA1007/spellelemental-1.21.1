@@ -2,6 +2,7 @@ package com.chadate.spellelemental.event;
 
 import com.chadate.spellelemental.SpellElemental;
 import com.chadate.spellelemental.network.ElementAttachmentSyncPacket;
+import com.chadate.spellelemental.network.SwordOilConfigSyncPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -16,16 +17,20 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public class ElementAttachmentSyncHandler {
     
     /**
-     * 当玩家登录服务器时，发送元素附着资源同步数据包
+     * 当玩家登录服务器时，发送元素附着资源同步数据包和精油配置同步数据包
      */
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
-            // 创建并发送同步数据包
-            ElementAttachmentSyncPacket syncPacket = ElementAttachmentSyncPacket.create();
-            PacketDistributor.sendToPlayer(serverPlayer, syncPacket);
+            // 创建并发送元素附着资源同步数据包
+            ElementAttachmentSyncPacket attachmentSyncPacket = ElementAttachmentSyncPacket.create();
+            PacketDistributor.sendToPlayer(serverPlayer, attachmentSyncPacket);
             
-            SpellElemental.LOGGER.debug("已向玩家 {} 发送元素附着资源同步数据包", serverPlayer.getName().getString());
+            // 创建并发送精油配置同步数据包
+            SwordOilConfigSyncPacket oilConfigSyncPacket = SwordOilConfigSyncPacket.create();
+            PacketDistributor.sendToPlayer(serverPlayer, oilConfigSyncPacket);
+            
+            SpellElemental.LOGGER.debug("已向玩家 {} 发送元素附着资源和精油配置同步数据包", serverPlayer.getName().getString());
         }
     }
     
@@ -35,11 +40,15 @@ public class ElementAttachmentSyncHandler {
     @SubscribeEvent
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
-            // 创建并发送同步数据包
-            ElementAttachmentSyncPacket syncPacket = ElementAttachmentSyncPacket.create();
-            PacketDistributor.sendToPlayer(serverPlayer, syncPacket);
+            // 创建并发送元素附着资源同步数据包
+            ElementAttachmentSyncPacket attachmentSyncPacket = ElementAttachmentSyncPacket.create();
+            PacketDistributor.sendToPlayer(serverPlayer, attachmentSyncPacket);
             
-            SpellElemental.LOGGER.debug("已向切换维度的玩家 {} 发送元素附着资源同步数据包", serverPlayer.getName().getString());
+            // 创建并发送精油配置同步数据包
+            SwordOilConfigSyncPacket oilConfigSyncPacket = SwordOilConfigSyncPacket.create();
+            PacketDistributor.sendToPlayer(serverPlayer, oilConfigSyncPacket);
+            
+            SpellElemental.LOGGER.debug("已向切换维度的玩家 {} 发送元素附着资源和精油配置同步数据包", serverPlayer.getName().getString());
         }
     }
 }

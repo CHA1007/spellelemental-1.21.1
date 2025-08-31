@@ -30,5 +30,12 @@ public class NetworkRegistry {
             ActionBarMessagePacket.STREAM_CODEC,
             ActionBarMessagePacket::handleClient
         );
+        
+        // 注册精油配置同步数据包
+        registrar.playToClient(
+            SwordOilConfigSyncPacket.TYPE,
+            SwordOilConfigSyncPacket.STREAM_CODEC,
+            SwordOilConfigSyncPacket::handleClient
+        );
     }
 }

@@ -26,15 +26,33 @@ public class SwordOilConfigLoader extends SimpleJsonResourceReloadListener {
     
     private static final Gson GSON = new Gson();
     private static final List<SwordOilConfig> SWORD_OIL_CONFIGS = new ArrayList<>();
+    private static boolean initialized = false;
     
     public SwordOilConfigLoader() {
         super(GSON, "sword_oils");
+    }
+    
+    /**
+     * 预初始化方法，标记为已初始化状态
+     * 实际配置完全由数据包加载，不进行任何硬编码或推断
+     */
+    public static void preInitialize() {
+        if (initialized) {
+            return;
+        }
+        
+        // 清空配置列表，等待数据包加载
+        SWORD_OIL_CONFIGS.clear();
+        initialized = true;
+        
+        SpellElemental.LOGGER.info("剑油配置加载器已预初始化，等待数据包加载");
     }
     
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> resourceLocationJsonElementMap,
                          @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profilerFiller) {
         SWORD_OIL_CONFIGS.clear();
+        initialized = false; // 重置初始化状态，允许重新加载
         
         for (Map.Entry<ResourceLocation, JsonElement> entry : resourceLocationJsonElementMap.entrySet()) {
             ResourceLocation resourceLocation = entry.getKey();
@@ -61,6 +79,9 @@ public class SwordOilConfigLoader extends SimpleJsonResourceReloadListener {
             } catch (Exception ignored) {
             }
         }
+        
+        // 数据包加载完成
+        SpellElemental.LOGGER.info("精油配置数据包加载完成，共加载 {} 个配置", SWORD_OIL_CONFIGS.size());
     }
     
     /**
@@ -83,8 +104,13 @@ public class SwordOilConfigLoader extends SimpleJsonResourceReloadListener {
     
     /**
      * 获取所有剑油配置
+     * 如果配置为空且未初始化，则自动进行预初始化
      */
     public static List<SwordOilConfig> getSwordOilConfigs() {
+        // 如果配置为空且未初始化，则进行预初始化
+        if (SWORD_OIL_CONFIGS.isEmpty() && !initialized) {
+            preInitialize();
+        }
         return new ArrayList<>(SWORD_OIL_CONFIGS);
     }
     
@@ -105,6 +131,20 @@ public class SwordOilConfigLoader extends SimpleJsonResourceReloadListener {
      */
     public static boolean isSwordOil(Item item) {
         return getSwordOilConfig(item) != null;
+    }
+    
+    /**
+     * 清空配置列表（用于客户端同步）
+     */
+    public static void clearConfigs() {
+        SWORD_OIL_CONFIGS.clear();
+    }
+    
+    /**
+     * 添加配置（用于客户端同步）
+     */
+    public static void addConfig(SwordOilConfig config) {
+        SWORD_OIL_CONFIGS.add(config);
     }
     
     /**

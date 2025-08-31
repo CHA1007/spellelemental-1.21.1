@@ -23,23 +23,23 @@ public class ModItems {
     );
 
     public static final Supplier<Item> FIRE_SWORD_OIL = ITEMS.register("fire_sword_oil",
-        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "fire", 3000)
+        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON))
     );
 
     public static final Supplier<Item> ICE_SWORD_OIL = ITEMS.register("ice_sword_oil",
-        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "ice", 3000)
+        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON))
     );
 
     public static final Supplier<Item> LIGHTNING_SWORD_OIL = ITEMS.register("lightning_sword_oil",
-        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "lightning", 3000)
+        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON))
     );
 
     public static final Supplier<Item> BLOOD_SWORD_OIL = ITEMS.register("blood_sword_oil",
-        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "blood", 3000)
+        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON))
     );
 
     public static final Supplier<Item> NATURE_SWORD_OIL = ITEMS.register("nature_sword_oil",
-        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "nature", 3000)
+        () -> new SwordOilItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON))
     );
 
     public static final Supplier<Item> STELLAR_FRAGMENT = ITEMS.register("stellar_fragment",
