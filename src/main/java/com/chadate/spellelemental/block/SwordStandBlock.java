@@ -6,6 +6,7 @@ import com.chadate.spellelemental.integration.jei.data.SwordOilConfigLoader;
 import com.chadate.spellelemental.util.ActionBarMessageUtil;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,13 +18,21 @@ import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -38,15 +47,33 @@ import org.jetbrains.annotations.Nullable;
 public class SwordStandBlock extends BaseEntityBlock {
     
     public static final MapCodec<SwordStandBlock> CODEC = simpleCodec(SwordStandBlock::new);
+    public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     
-    // 剑座的碰撞箱 - 根据模型文件设计
-    private static final VoxelShape SHAPE = Shapes.or(
+    // 剑座的碰撞箱 - 根据模型文件设计 (朝北方向的基础形状)
+    private static final VoxelShape NORTH_SHAPE = Shapes.or(
         Block.box(1, 0, 4, 15, 1, 12),   // 底座：14x1x8 (from [1,0,4] to [15,1,12])
         Block.box(2, 1, 5, 14, 2, 11)    // 上层平台：12x1x6 (from [2,1,5] to [14,2,11])
+    );
+    
+    // 不同方向的碰撞箱
+    private static final VoxelShape SOUTH_SHAPE = Shapes.or(
+        Block.box(1, 0, 4, 15, 1, 12),   // 底座
+        Block.box(2, 1, 5, 14, 2, 11)    // 上层平台
+    );
+    
+    private static final VoxelShape EAST_SHAPE = Shapes.or(
+        Block.box(4, 0, 1, 12, 1, 15),   // 底座旋转90度
+        Block.box(5, 1, 2, 11, 2, 14)    // 上层平台旋转90度
+    );
+    
+    private static final VoxelShape WEST_SHAPE = Shapes.or(
+        Block.box(4, 0, 1, 12, 1, 15),   // 底座旋转90度
+        Block.box(5, 1, 2, 11, 2, 14)    // 上层平台旋转90度
     );
 
     public SwordStandBlock(Properties properties) {
         super(properties);
+        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
     @Override
@@ -56,7 +83,14 @@ public class SwordStandBlock extends BaseEntityBlock {
 
     @Override
     public @NotNull VoxelShape getShape(@NotNull BlockState state, @NotNull BlockGetter level, @NotNull BlockPos pos, @NotNull CollisionContext context) {
-        return SHAPE;
+        Direction facing = state.getValue(FACING);
+        return switch (facing) {
+            case NORTH -> NORTH_SHAPE;
+            case SOUTH -> SOUTH_SHAPE;
+            case EAST -> EAST_SHAPE;
+            case WEST -> WEST_SHAPE;
+            default -> NORTH_SHAPE;
+        };
     }
 
     @Override
@@ -255,5 +289,29 @@ public class SwordStandBlock extends BaseEntityBlock {
             }
         }
         super.onRemove(state, level, pos, newState, isMoving);
+    }
+
+    // 方块放置时设置方向
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    // 创建方块状态定义
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING);
+    }
+
+    // 支持旋转
+    @Override
+    public @NotNull BlockState rotate(BlockState state, Rotation rotation) {
+        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+    }
+
+    // 支持镜像
+    @Override
+    public @NotNull BlockState mirror(BlockState state, Mirror mirror) {
+        return state.rotate(mirror.getRotation(state.getValue(FACING)));
     }
 }

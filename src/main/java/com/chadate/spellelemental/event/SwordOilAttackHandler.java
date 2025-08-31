@@ -1,7 +1,9 @@
 package com.chadate.spellelemental.event;
 
+import com.chadate.spellelemental.config.ServerConfig;
 import com.chadate.spellelemental.data.ElementContainerAttachment;
 import com.chadate.spellelemental.data.SpellAttachments;
+import com.chadate.spellelemental.element.attachment.attack.SpellIcdTracker;
 import com.chadate.spellelemental.event.element.ElementDecaySystem;
 import com.chadate.spellelemental.network.ElementData;
 import net.minecraft.nbt.CompoundTag;
@@ -12,6 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
@@ -101,8 +104,9 @@ public class SwordOilAttackHandler {
     /**
      * 处理横扫攻击时的元素附着
      * 监听所有伤害事件，检测是否为剑油武器造成的伤害
+     * 使用 HIGH 优先级确保在元素反应检测之前完成元素附着
      */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingDamage(LivingDamageEvent.Pre event) {
         // 只在服务端处理
         if (event.getEntity().level().isClientSide()) {
@@ -166,6 +170,27 @@ public class SwordOilAttackHandler {
      * @return 实际消耗的元素量
      */
     private static int applyElementToTargetWithRatio(LivingEntity target, String elementType, int attackerId, float chargeRatio, float damageRatio) {
+        // 获取攻击者实体用于ICD检查
+        LivingEntity attacker = null;
+        if (target.level() instanceof ServerLevel serverLevel) {
+            if (serverLevel.getEntity(attackerId) instanceof LivingEntity livingAttacker) {
+                attacker = livingAttacker;
+            }
+        }
+        
+        // 应用ICD机制检查 - 使用剑油横扫作为"法术"标识
+        net.minecraft.resources.ResourceLocation swordOilSweepSpellId = 
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("spellelemental", "sword_oil_sweep_" + elementType.toLowerCase());
+        
+        int step = ServerConfig.getIcdHitStep();
+        int timeTicks = ServerConfig.getIcdTimeTicks();
+        long currentTick = target.level().getGameTime();
+        
+        boolean allowAttachment = SpellIcdTracker.allowAndRecord(attacker, target, swordOilSweepSpellId, currentTick, step, timeTicks);
+        if (!allowAttachment) {
+            return 0; // ICD未满足，跳过此次元素附着，返回0消耗量
+        }
+        
         // 根据蓄力力度计算基础元素附着量（20~200点）
         int baseElementAmount = Math.round(20 + (200 - 20) * chargeRatio);
         baseElementAmount = Math.max(20, Math.min(200, baseElementAmount));
@@ -204,6 +229,27 @@ public class SwordOilAttackHandler {
      * @param chargeRatio 蓄力力度（0.0-1.0）
      */
     private static void applyElementToTarget(LivingEntity target, String elementType, int attackerId, float chargeRatio) {
+        // 获取攻击者实体用于ICD检查
+        LivingEntity attacker = null;
+        if (target.level() instanceof ServerLevel serverLevel) {
+            if (serverLevel.getEntity(attackerId) instanceof LivingEntity livingAttacker) {
+                attacker = livingAttacker;
+            }
+        }
+        
+        // 应用ICD机制检查 - 使用剑油作为"法术"标识
+        net.minecraft.resources.ResourceLocation swordOilSpellId = 
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("spellelemental", "sword_oil_" + elementType.toLowerCase());
+        
+        int step = ServerConfig.getIcdHitStep();
+        int timeTicks = ServerConfig.getIcdTimeTicks();
+        long currentTick = target.level().getGameTime();
+        
+        boolean allowAttachment = SpellIcdTracker.allowAndRecord(attacker, target, swordOilSpellId, currentTick, step, timeTicks);
+        if (!allowAttachment) {
+            return; // ICD未满足，跳过此次元素附着
+        }
+        
         // 根据蓄力力度计算元素附着量（20~200点）
         // chargeRatio: 0.0 -> 20点, 1.0 -> 200点
         int elementAmount = Math.round(20 + (200 - 20) * chargeRatio);

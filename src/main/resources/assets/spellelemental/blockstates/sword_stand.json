@@ -1,7 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=north": {
       "model": "spellelemental:block/sword_stand"
+    },
+    "facing=south": {
+      "model": "spellelemental:block/sword_stand",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "spellelemental:block/sword_stand",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "spellelemental:block/sword_stand",
+      "y": 270
     }
   }
 }
