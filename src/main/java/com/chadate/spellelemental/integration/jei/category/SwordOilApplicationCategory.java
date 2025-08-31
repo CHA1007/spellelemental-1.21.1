@@ -33,7 +33,6 @@ import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 
 
@@ -46,7 +45,6 @@ public class SwordOilApplicationCategory implements IRecipeCategory<SwordOilAppl
     public static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(SpellElemental.MODID, "sword_oil_application");
     private static final ResourceLocation RIGHT_CLICK_ICON = ResourceLocation.fromNamespaceAndPath(SpellElemental.MODID, "textures/gui/jei/right_click_mouce_icon.png");
 
-    private final IDrawable background;
     private final IDrawable icon;
     
     // 布局常量
@@ -67,8 +65,6 @@ public class SwordOilApplicationCategory implements IRecipeCategory<SwordOilAppl
     private static final int OUTPUT_SWORD_Y = 30;
 
     public SwordOilApplicationCategory(IGuiHelper guiHelper) {
-        // 使用 JEI 默认背景
-        this.background = guiHelper.createBlankDrawable(GUI_WIDTH, GUI_HEIGHT);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(ModBlocks.SWORD_STAND.get()));
     }
     
@@ -271,7 +267,12 @@ public class SwordOilApplicationCategory implements IRecipeCategory<SwordOilAppl
     }
 
     @Override
-    public @Nullable IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return GUI_WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return GUI_HEIGHT;
     }
 }
